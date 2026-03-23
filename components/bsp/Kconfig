@@ -1,0 +1,15 @@
+menu "BSP"
+
+choice BSP_BOARD_TARGET
+    prompt "Target board"
+    default BSP_BOARD_DOERS3
+
+config BSP_BOARD_DOERS3
+    bool "DoerS3"
+
+config BSP_BOARD_AURAS3
+    bool "AuraS3"
+
+endchoice
+
+endmenu
