@@ -1,3 +1,9 @@
 .vscode/
 build/
 managed_components/
+.codex
+tmp/
+components/bsp/test_app/*/build/
+components/bsp/test_app/*/sdkconfig
+components/bsp/test_app/*/dependencies.lock
+components/bsp/test_app/*/managed_components
