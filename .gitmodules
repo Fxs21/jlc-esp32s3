@@ -1,0 +1,3 @@
+[submodule "components/x-track/App"]
+	path = components/x-track/App
+	url = git@github.com:Fxs21/xtrack-app.git

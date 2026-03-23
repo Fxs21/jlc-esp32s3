@@ -9,30 +9,6 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.5.3
-  espressif/esp32-camera:
-    component_hash: 2b75f6f0c987fb0e3687ccbd464cd00c163ea8cb05d2470cfb05adf6535bc488
-    dependencies:
-    - name: espressif/esp_jpeg
-      registry_url: https://components.espressif.com
-      require: public
-      version: ^1.3.1
-    - name: idf
-      require: private
-      version: '>=5.1'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 2.1.6
-  espressif/esp_jpeg:
-    component_hash: defb83669293cbf86d0fa86b475ba5517aceed04ed70db435388c151ab37b5d7
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=5.0'
-    source:
-      registry_url: https://components.espressif.com
-      type: service
-    version: 1.3.1
   espressif/esp_lcd_co5300:
     component_hash: 7004162c496b65a5e0ee7c92800c33c12b373ea70d07199318a182cb16c741b7
     dependencies:
@@ -59,10 +35,9 @@ dependencies:
       type: service
     version: 9.5.0
 direct_dependencies:
-- espressif/esp32-camera
 - espressif/esp_lcd_co5300
 - idf
 - lvgl/lvgl
-manifest_hash: 62d1d7be678bf946c1e1226d57d3ea78b15b4d32ffd4979c820c601102cbf0f5
+manifest_hash: b358d35c134ccc611b828a21cd9c784d82062393c49d167aa079a015599a2575
 target: esp32s3
 version: 2.0.0

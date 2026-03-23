@@ -1,3 +1,3 @@
-idf_component_register(SRCS "main.c"
+idf_component_register(SRCS "main.cpp"
                     INCLUDE_DIRS "."
-                    PRIV_REQUIRES bsp)
+                    PRIV_REQUIRES bsp x-track)
