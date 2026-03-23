@@ -1,0 +1,24 @@
+menu "BSP"
+
+choice BSP_BOARD_TARGET
+    prompt "Target board"
+    default BSP_BOARD_DOERS3
+
+config BSP_BOARD_DOERS3
+    bool "DoerS3"
+
+config BSP_BOARD_AURAS3
+    bool "AuraS3"
+
+endchoice
+
+config BSP_ENABLE_CAMERA
+    bool "Enable BSP camera support"
+    depends on BSP_BOARD_DOERS3
+    default n
+    help
+        Build the DoerS3 camera port and link esp32-camera dependencies.
+        Keep this disabled for apps that do not use camera to reduce build and
+        link dependencies.
+
+endmenu

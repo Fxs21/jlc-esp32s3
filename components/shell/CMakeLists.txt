@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "src/shell.c"
+        "src/cmd_fs.c"
+        "src/cmd_bsp.c"
+        "src/cmd_i2c.c"
+        "src/path_utils.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        console
+        bsp
+        fatfs
+)

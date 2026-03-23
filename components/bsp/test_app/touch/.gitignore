@@ -1,0 +1,9 @@
+# Local ESP-IDF generated state.
+/sdkconfig
+/dependencies.lock
+/build/
+
+# Board-specific generated config/build outputs.
+/sdkconfig.board_*
+!/sdkconfig.board_*.defaults
+/build.board_*/
