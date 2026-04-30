@@ -1,6 +1,5 @@
 set(srcs
     "src/common/ui.c"
-    "src/common/audio_stub.c"
     "src/common/camera_stub.c"
 )
 
@@ -20,6 +19,7 @@ if(CONFIG_BSP_BOARD_DOERS3)
         "src/boards/doers3/sdcard.c"
         "src/boards/doers3/gnss.c"
         "src/boards/doers3/imu.c"
+        "src/boards/doers3/audio.c"
         "src/boards/doers3/internal/doers3_i2c.c"
         "src/boards/doers3/internal/doers3_ioexp.c"
         "src/boards/doers3/internal/pca9557.c"
@@ -36,6 +36,7 @@ elseif(CONFIG_BSP_BOARD_AURAS3)
         "src/boards/auras3/backlight.c"
         "src/boards/auras3/sdcard.c"
         "src/boards/auras3/gnss.c"
+        "src/common/audio_stub.c"
         "src/common/imu_stub.c"
     )
     list(APPEND priv_include_dirs "src/boards/auras3/internal")
@@ -54,6 +55,7 @@ idf_component_register(
         lvgl
         esp32-camera
         waveshare__qmi8658
+        espressif__esp_codec_dev
     PRIV_REQUIRES
         esp_timer
         freertos

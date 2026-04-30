@@ -34,6 +34,8 @@ components/
 - `bsp_sdcard_*()`
 - `bsp_gnss_*()`
 - `bsp_imu_*()`
+- `bsp_audio_*()`
+- `bsp_camera_*()`
 
 `bsp_board_get_info()->capabilities` 只表示当前 BSP 已接入、可通过公共 API 使用的能力，不提前声明尚未实现的硬件。
 

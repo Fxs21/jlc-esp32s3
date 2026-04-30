@@ -65,6 +65,7 @@
 
 - I2C: `IO1_I2C_SDA` / `IO2_I2C_SCL`
 - I2S: `IO38_I2S_MCK` / `IO14_I2S_BCK` / `IO13_I2S_WS` / `IO45_I2S_DO` / `IO12_I2S_DI`
+- Codec: ES8311 `0x18`，ES7210 `0x41`（7-bit I2C 地址）
 - 功放使能：`PA_EN`（来自 PCA9557 IO1）
 
 ### GNSS（P1 外部接口 J2）
