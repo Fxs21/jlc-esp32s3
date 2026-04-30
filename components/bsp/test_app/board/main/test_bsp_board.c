@@ -4,7 +4,6 @@
 #include "bsp_audio.h"
 #include "bsp_backlight.h"
 #include "bsp_board.h"
-#include "bsp_camera.h"
 #include "bsp_display.h"
 #include "bsp_gnss.h"
 #include "bsp_imu.h"
@@ -35,5 +34,4 @@ void app_main(void)
     print_bool("gnss", bsp_gnss_get_desc()->present);
     print_bool("imu", bsp_imu_get_desc()->present);
     print_bool("audio", bsp_audio_get_desc()->present);
-    print_bool("camera", bsp_camera_get_desc()->present);
 }

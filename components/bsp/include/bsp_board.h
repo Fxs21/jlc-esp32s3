@@ -18,8 +18,6 @@ typedef enum {
 #define BSP_BOARD_CAP_GNSS      (1ULL << 4)
 #define BSP_BOARD_CAP_IMU       (1ULL << 5)
 #define BSP_BOARD_CAP_AUDIO     (1ULL << 6)
-#define BSP_BOARD_CAP_CAMERA    (1ULL << 7)
-#define BSP_BOARD_CAP_POWER     (1ULL << 8)
 
 typedef struct {
     bsp_board_id_t id;

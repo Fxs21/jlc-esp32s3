@@ -9,8 +9,9 @@
 
 #define TAG "test_bsp_audio"
 #define TONE_HZ 440
-#define TONE_MS 800
-#define TONE_AMPLITUDE 1200
+#define TONE_MS 3000
+#define TONE_AMPLITUDE 12000
+#define PLAY_VOLUME 80
 #define FRAME_SAMPLES 256
 #define RECORD_ROUNDS 20
 #define PI_F 3.14159265358979323846f
@@ -55,21 +56,20 @@ void app_main(void)
     ESP_ERROR_CHECK(bsp_audio_open(&audio));
 
     bsp_audio_stream_cfg_t cfg = bsp_audio_default_stream_config();
-    ESP_ERROR_CHECK(bsp_audio_start(audio, &cfg));
-    ESP_ERROR_CHECK(bsp_audio_set_out_vol(audio, 35));
-    ESP_ERROR_CHECK(bsp_audio_set_in_gain(audio, 30.0f));
 
     size_t sample_count = FRAME_SAMPLES * cfg.channels;
     size_t bytes = sample_count * sizeof(int16_t);
     int16_t *buf = calloc(sample_count, sizeof(int16_t));
     if (buf == NULL) {
         ESP_LOGE(TAG, "no memory for audio buffer");
-        ESP_ERROR_CHECK(bsp_audio_stop(audio));
         ESP_ERROR_CHECK(bsp_audio_close(audio));
         return;
     }
 
-    ESP_LOGI(TAG, "play %dHz tone for %dms", TONE_HZ, TONE_MS);
+    ESP_ERROR_CHECK(bsp_audio_play_start(audio, &cfg));
+    ESP_ERROR_CHECK(bsp_audio_play_set_volume(audio, PLAY_VOLUME));
+
+    ESP_LOGI(TAG, "play %dHz tone for %dms, volume=%d", TONE_HZ, TONE_MS, PLAY_VOLUME);
     uint32_t phase = 0;
     uint32_t frames_total = cfg.sample_rate * TONE_MS / 1000;
     for (uint32_t done = 0; done < frames_total; done += FRAME_SAMPLES) {
@@ -78,19 +78,22 @@ void app_main(void)
             frames = FRAME_SAMPLES;
         }
         fill_tone(buf, frames, cfg.sample_rate, cfg.channels, &phase);
-        ESP_ERROR_CHECK(bsp_audio_write(audio, buf, frames * cfg.channels * sizeof(int16_t)));
+        ESP_ERROR_CHECK(bsp_audio_play_write(audio, buf, frames * cfg.channels * sizeof(int16_t)));
     }
+    ESP_ERROR_CHECK(bsp_audio_play_stop(audio));
 
+    ESP_ERROR_CHECK(bsp_audio_record_start(audio, &cfg));
+    ESP_ERROR_CHECK(bsp_audio_record_set_gain(audio, 30.0f));
     ESP_LOGI(TAG, "record sample ranges");
     for (int i = 0; i < RECORD_ROUNDS; ++i) {
-        ESP_ERROR_CHECK(bsp_audio_read(audio, buf, bytes));
+        ESP_ERROR_CHECK(bsp_audio_record_read(audio, buf, bytes));
         int16_t min = 0;
         int16_t max = 0;
         sample_min_max(buf, sample_count, &min, &max);
         printf("audio range: min=%d max=%d span=%d\n", min, max, max - min);
     }
 
+    ESP_ERROR_CHECK(bsp_audio_record_stop(audio));
     free(buf);
-    ESP_ERROR_CHECK(bsp_audio_stop(audio));
     ESP_ERROR_CHECK(bsp_audio_close(audio));
 }

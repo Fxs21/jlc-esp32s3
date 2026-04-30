@@ -16,7 +16,7 @@
 components/
   bsp/
     include/              # app 可见 API
-    src/common/           # 公共组合层或占位层
+    src/common/           # 只放真正跨板复用的组合层
     src/boards/doers3/    # DoerS3 实现
     src/boards/auras3/    # AuraS3 实现或占位
     src/drivers/          # 可复用 IC driver
@@ -35,11 +35,12 @@ components/
 - `bsp_gnss_*()`
 - `bsp_imu_*()`
 - `bsp_audio_*()`
-- `bsp_camera_*()`
 
 `bsp_board_get_info()->capabilities` 只表示当前 BSP 已接入、可通过公共 API 使用的能力，不提前声明尚未实现的硬件。
 
 DoerS3 和 AuraS3 不共享一个大 truth table。具体 GPIO、bus、IOEXP、屏幕方向、SDMMC 接线等，写在各自 board port 中。
+
+占位实现也放在对应 board port 中。`src/common` 不放某块板子的未实现外设，否则代码看起来像“公共能力”，实际却只是某个板子的临时空实现。
 
 ## IOEXP
 
@@ -61,6 +62,7 @@ IOEXP 不作为公开模块。
 - 有描述信息的外设提供 `bsp_xxx_get_desc()`。
 - 有运行态资源的外设提供 `bsp_xxx_open()` / `bsp_xxx_close()`。
 - 不再使用 `new/del` 命名，避免和 C++ 对象生命周期混在一起。
+- Audio 使用一个 `bsp_audio_handle_t`，但 playback 和 record 分开 `start/stop/read/write`；duplex 就是同时启动两路，不再用 `mode` 组合状态。
 
 ## Kconfig
 

@@ -1,6 +1,5 @@
 set(srcs
     "src/common/ui.c"
-    "src/common/camera_stub.c"
 )
 
 set(priv_include_dirs
@@ -36,10 +35,9 @@ elseif(CONFIG_BSP_BOARD_AURAS3)
         "src/boards/auras3/backlight.c"
         "src/boards/auras3/sdcard.c"
         "src/boards/auras3/gnss.c"
-        "src/common/audio_stub.c"
-        "src/common/imu_stub.c"
+        "src/boards/auras3/imu.c"
+        "src/boards/auras3/audio.c"
     )
-    list(APPEND priv_include_dirs "src/boards/auras3/internal")
 endif()
 
 idf_component_register(
@@ -49,11 +47,11 @@ idf_component_register(
     REQUIRES
         driver
         esp_lcd
+        espressif__esp_lcd_touch
         espressif__esp_lcd_touch_ft5x06
         fatfs
-        sdmmc
         lvgl
-        esp32-camera
+        sdmmc
         waveshare__qmi8658
         espressif__esp_codec_dev
     PRIV_REQUIRES

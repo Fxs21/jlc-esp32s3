@@ -23,10 +23,13 @@ struct bsp_audio_s {
     const audio_codec_if_t *in_codec_if;
     esp_codec_dev_handle_t play_dev;
     esp_codec_dev_handle_t record_dev;
-    bsp_audio_mode_t mode;
+    bsp_audio_stream_cfg_t play_cfg;
+    bsp_audio_stream_cfg_t record_cfg;
     bool i2c_acquired;
     bool ioexp_acquired;
-    bool started;
+    bool play_started;
+    bool record_started;
+    bool record_tx_clock_enabled;
 };
 
 static const bsp_audio_desc_t s_desc = {
@@ -38,6 +41,23 @@ static const bsp_audio_desc_t s_desc = {
 static esp_err_t codec_to_esp(int ret)
 {
     return ret == ESP_CODEC_DEV_OK ? ESP_OK : (esp_err_t)ret;
+}
+
+static esp_codec_dev_sample_info_t stream_to_sample_info(const bsp_audio_stream_cfg_t *cfg)
+{
+    const esp_codec_dev_sample_info_t fs = {
+        .sample_rate = cfg->sample_rate,
+        .channel = cfg->channels,
+        .bits_per_sample = cfg->bits_per_sample,
+    };
+    return fs;
+}
+
+static bool stream_cfg_equal(const bsp_audio_stream_cfg_t *a, const bsp_audio_stream_cfg_t *b)
+{
+    return a->sample_rate == b->sample_rate &&
+           a->channels == b->channels &&
+           a->bits_per_sample == b->bits_per_sample;
 }
 
 static esp_err_t audio_i2s_init(struct bsp_audio_s *handle)
@@ -80,7 +100,8 @@ static void audio_i2s_deinit(struct bsp_audio_s *handle)
 
 static esp_err_t audio_pa_set(bool enabled)
 {
-    return doers3_ioexp_write_pin(DOERS3_IOEXP_AUDIO_PA, enabled);
+    const bool level = enabled ? DOERS3_IOEXP_AUDIO_PA_ENABLE_LEVEL : !DOERS3_IOEXP_AUDIO_PA_ENABLE_LEVEL;
+    return doers3_ioexp_write_pin(DOERS3_IOEXP_AUDIO_PA, level);
 }
 
 const bsp_audio_desc_t *bsp_audio_get_desc(void)
@@ -91,7 +112,6 @@ const bsp_audio_desc_t *bsp_audio_get_desc(void)
 bsp_audio_stream_cfg_t bsp_audio_default_stream_config(void)
 {
     const bsp_audio_stream_cfg_t cfg = {
-        .mode = BSP_AUDIO_MODE_DUPLEX,
         .sample_rate = 16000,
         .channels = 2,
         .bits_per_sample = 16,
@@ -197,8 +217,11 @@ err:
 esp_err_t bsp_audio_close(bsp_audio_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    if (handle->started) {
-        (void)bsp_audio_stop(handle);
+    if (handle->play_started) {
+        (void)bsp_audio_play_stop(handle);
+    }
+    if (handle->record_started) {
+        (void)bsp_audio_record_stop(handle);
     }
 
     if (handle->play_dev != NULL) {
@@ -237,88 +260,107 @@ esp_err_t bsp_audio_close(bsp_audio_handle_t handle)
     return ESP_OK;
 }
 
-esp_err_t bsp_audio_start(bsp_audio_handle_t handle, const bsp_audio_stream_cfg_t *stream_cfg)
+esp_err_t bsp_audio_play_start(bsp_audio_handle_t handle, const bsp_audio_stream_cfg_t *stream_cfg)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
     ESP_RETURN_ON_FALSE(stream_cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "stream_cfg is null");
-    ESP_RETURN_ON_FALSE(!handle->started, ESP_ERR_INVALID_STATE, TAG, "already started");
-    ESP_RETURN_ON_FALSE(stream_cfg->mode != BSP_AUDIO_MODE_NONE, ESP_ERR_INVALID_ARG, TAG, "bad audio mode");
+    ESP_RETURN_ON_FALSE(!handle->play_started, ESP_ERR_INVALID_STATE, TAG, "playback already started");
+    ESP_RETURN_ON_FALSE(!handle->record_started || stream_cfg_equal(stream_cfg, &handle->record_cfg),
+                        ESP_ERR_NOT_SUPPORTED, TAG, "playback config differs from active record");
 
-    esp_codec_dev_sample_info_t fs = {
-        .sample_rate = stream_cfg->sample_rate,
-        .channel = stream_cfg->channels,
-        .bits_per_sample = stream_cfg->bits_per_sample,
-    };
-    if (stream_cfg->mode & BSP_AUDIO_MODE_PLAYBACK) {
-        ESP_RETURN_ON_ERROR(codec_to_esp(esp_codec_dev_open(handle->play_dev, &fs)), TAG, "open playback failed");
-        ESP_RETURN_ON_ERROR(audio_pa_set(true), TAG, "enable pa failed");
+    esp_codec_dev_sample_info_t fs = stream_to_sample_info(stream_cfg);
+    ESP_RETURN_ON_ERROR(codec_to_esp(esp_codec_dev_open(handle->play_dev, &fs)), TAG, "open playback failed");
+    esp_err_t ret = audio_pa_set(true);
+    if (ret != ESP_OK) {
+        (void)esp_codec_dev_close(handle->play_dev);
+        return ret;
     }
-    if (stream_cfg->mode & BSP_AUDIO_MODE_RECORD) {
-        esp_err_t ret = codec_to_esp(esp_codec_dev_open(handle->record_dev, &fs));
-        if (ret != ESP_OK) {
-            if (stream_cfg->mode & BSP_AUDIO_MODE_PLAYBACK) {
-                (void)audio_pa_set(false);
-                (void)esp_codec_dev_close(handle->play_dev);
-            }
-            return ret;
-        }
-    }
-    handle->mode = stream_cfg->mode;
-    handle->started = true;
+
+    handle->play_cfg = *stream_cfg;
+    handle->play_started = true;
+    handle->record_tx_clock_enabled = false;
     return ESP_OK;
 }
 
-esp_err_t bsp_audio_stop(bsp_audio_handle_t handle)
+esp_err_t bsp_audio_play_stop(bsp_audio_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(handle->started, ESP_ERR_INVALID_STATE, TAG, "not started");
+    ESP_RETURN_ON_FALSE(handle->play_started, ESP_ERR_INVALID_STATE, TAG, "playback not started");
 
-    esp_err_t first_err = ESP_OK;
-    if (handle->mode & BSP_AUDIO_MODE_PLAYBACK) {
-        esp_err_t ret = audio_pa_set(false);
-        if (ret != ESP_OK && first_err == ESP_OK) {
-            first_err = ret;
-        }
-        ret = codec_to_esp(esp_codec_dev_close(handle->play_dev));
-        if (ret != ESP_OK && first_err == ESP_OK) {
-            first_err = ret;
-        }
+    esp_err_t first_err = audio_pa_set(false);
+    esp_err_t ret = codec_to_esp(esp_codec_dev_close(handle->play_dev));
+    if (ret != ESP_OK && first_err == ESP_OK) {
+        first_err = ret;
     }
-    if (handle->mode & BSP_AUDIO_MODE_RECORD) {
-        esp_err_t ret = codec_to_esp(esp_codec_dev_close(handle->record_dev));
-        if (ret != ESP_OK && first_err == ESP_OK) {
-            first_err = ret;
-        }
+
+    handle->play_started = false;
+    if (handle->record_started) {
+        handle->record_tx_clock_enabled = true;
     }
-    handle->mode = BSP_AUDIO_MODE_NONE;
-    handle->started = false;
     return first_err;
 }
 
-esp_err_t bsp_audio_set_out_vol(bsp_audio_handle_t handle, int volume)
+esp_err_t bsp_audio_play_set_volume(bsp_audio_handle_t handle, int volume)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    ESP_RETURN_ON_FALSE(handle->play_started, ESP_ERR_INVALID_STATE, TAG, "playback not started");
     return codec_to_esp(esp_codec_dev_set_out_vol(handle->play_dev, volume));
 }
 
-esp_err_t bsp_audio_set_in_gain(bsp_audio_handle_t handle, float gain_db)
+esp_err_t bsp_audio_play_write(bsp_audio_handle_t handle, const void *data, size_t len)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    ESP_RETURN_ON_FALSE(data != NULL, ESP_ERR_INVALID_ARG, TAG, "data is null");
+    ESP_RETURN_ON_FALSE(handle->play_started, ESP_ERR_INVALID_STATE, TAG, "playback not started");
+    return codec_to_esp(esp_codec_dev_write(handle->play_dev, (void *)data, (int)len));
+}
+
+esp_err_t bsp_audio_record_start(bsp_audio_handle_t handle, const bsp_audio_stream_cfg_t *stream_cfg)
+{
+    ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    ESP_RETURN_ON_FALSE(stream_cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "stream_cfg is null");
+    ESP_RETURN_ON_FALSE(!handle->record_started, ESP_ERR_INVALID_STATE, TAG, "record already started");
+    ESP_RETURN_ON_FALSE(!handle->play_started || stream_cfg_equal(stream_cfg, &handle->play_cfg),
+                        ESP_ERR_NOT_SUPPORTED, TAG, "record config differs from active playback");
+
+    esp_codec_dev_sample_info_t fs = stream_to_sample_info(stream_cfg);
+    ESP_RETURN_ON_ERROR(codec_to_esp(esp_codec_dev_open(handle->record_dev, &fs)), TAG, "open record failed");
+
+    handle->record_cfg = *stream_cfg;
+    handle->record_started = true;
+    handle->record_tx_clock_enabled = !handle->play_started;
+    return ESP_OK;
+}
+
+esp_err_t bsp_audio_record_stop(bsp_audio_handle_t handle)
+{
+    ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    ESP_RETURN_ON_FALSE(handle->record_started, ESP_ERR_INVALID_STATE, TAG, "record not started");
+
+    esp_err_t first_err = codec_to_esp(esp_codec_dev_close(handle->record_dev));
+    if (handle->record_tx_clock_enabled) {
+        esp_err_t ret = i2s_channel_disable(handle->tx_chan);
+        if (ret != ESP_OK && first_err == ESP_OK) {
+            first_err = ret;
+        }
+        handle->record_tx_clock_enabled = false;
+    }
+
+    handle->record_started = false;
+    return first_err;
+}
+
+esp_err_t bsp_audio_record_set_gain(bsp_audio_handle_t handle, float gain_db)
+{
+    ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    ESP_RETURN_ON_FALSE(handle->record_started, ESP_ERR_INVALID_STATE, TAG, "record not started");
     return codec_to_esp(esp_codec_dev_set_in_gain(handle->record_dev, gain_db));
 }
 
-esp_err_t bsp_audio_write(bsp_audio_handle_t handle, void *data, size_t len)
+esp_err_t bsp_audio_record_read(bsp_audio_handle_t handle, void *data, size_t len)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
     ESP_RETURN_ON_FALSE(data != NULL, ESP_ERR_INVALID_ARG, TAG, "data is null");
-    ESP_RETURN_ON_FALSE(handle->started && (handle->mode & BSP_AUDIO_MODE_PLAYBACK), ESP_ERR_INVALID_STATE, TAG, "playback not started");
-    return codec_to_esp(esp_codec_dev_write(handle->play_dev, data, (int)len));
-}
-
-esp_err_t bsp_audio_read(bsp_audio_handle_t handle, void *data, size_t len)
-{
-    ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(data != NULL, ESP_ERR_INVALID_ARG, TAG, "data is null");
-    ESP_RETURN_ON_FALSE(handle->started && (handle->mode & BSP_AUDIO_MODE_RECORD), ESP_ERR_INVALID_STATE, TAG, "record not started");
+    ESP_RETURN_ON_FALSE(handle->record_started, ESP_ERR_INVALID_STATE, TAG, "record not started");
     return codec_to_esp(esp_codec_dev_read(handle->record_dev, data, (int)len));
 }

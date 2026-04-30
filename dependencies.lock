@@ -1,19 +1,4 @@
 dependencies:
-  espressif/esp32-camera:
-    component_hash: 
-      2b75f6f0c987fb0e3687ccbd464cd00c163ea8cb05d2470cfb05adf6535bc488
-    dependencies:
-    - name: espressif/esp_jpeg
-      registry_url: https://components.espressif.com
-      require: public
-      version: ^1.3.1
-    - name: idf
-      require: private
-      version: '>=5.1'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 2.1.6
   espressif/esp_codec_dev:
     component_hash: 
       54870f7a66dd93367b4153dedb22299efadf8b7b2ead322cdebc7c92a542fa35
@@ -25,17 +10,6 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.5.7
-  espressif/esp_jpeg:
-    component_hash: 
-      defb83669293cbf86d0fa86b475ba5517aceed04ed70db435388c151ab37b5d7
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=5.0'
-    source:
-      registry_url: https://components.espressif.com
-      type: service
-    version: 1.3.1
   espressif/esp_lcd_touch:
     component_hash: 
       3f85a7d95af876f1a6ecca8eb90a81614890d0f03a038390804e5a77e2caf862
@@ -86,12 +60,11 @@ dependencies:
       type: service
     version: 1.0.1
 direct_dependencies:
-- espressif/esp32-camera
 - espressif/esp_codec_dev
 - espressif/esp_lcd_touch_ft5x06
 - idf
 - lvgl/lvgl
 - waveshare/qmi8658
-manifest_hash: d28cbb8f324d23504e1e31bc39753e93a1bab1210c50c664b77639058c67c3d7
+manifest_hash: 8ddc6378b6f55c0df562d8fcd32a8d5b726f7151ad70ea682c2603ab9502631e
 target: esp32s3
 version: 2.0.0
