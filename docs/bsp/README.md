@@ -10,8 +10,7 @@ app 应只依赖 `components/bsp/include` 中的公开头文件,不直接依赖 
 - board 差异放在 `components/bsp/src/boards/<board>/`.
 - 小 IC driver 优先由 BSP 私有管理,放在 `components/bsp/src/drivers/`.
 - 跨板复用逻辑只放在 `components/bsp/src/common/`,例如 shared I2C bus owner,common UI lifecycle,LVGL buffer helper 和 unsupported stubs.
-- 核心 API 不直接暴露 ESP-IDF 或第三方 driver 类型.
-- LVGL 原生对象只通过明确命名的 escape hatch 暴露,例如 `bsp_ui_get_lvgl_display()`.
+- 原生对象只通过明确命名的 escape hatch 暴露:LVGL 用 `bsp_ui_get_lvgl_display()`,I2C 总线用 `bsp_i2c_acquire()`.
 - `components/shell` 不是 BSP 的一部分,但 `components/bsp/test_app/shell` 可以把 shell 作为 BSP 调试入口.
 
 ## 目录入口
@@ -47,15 +46,13 @@ components/bsp/test_app/<name>
 
 ```text
 audio
-board
 camera
 pmu
 shell
-touch
 ui
 ```
 
-`imu`, `sdcard`, `gnss` 测试已合并到 `shell` 命令中,不保留独立 test_app.
+`imu`, `sdcard`, `gnss` 测试已合并到 `shell` 命令中;board info 由 shell `bsp info` 验证,不保留独立 test_app.
 
 常用方式:
 

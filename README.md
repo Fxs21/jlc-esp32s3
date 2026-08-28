@@ -11,6 +11,7 @@ ESP32-S3 board support project for DoerS3 and AuraS3.
 - BSP 已收敛为单一组件:`components/bsp`.
 - App 应通过 `bsp_xxx` public API 使用外设能力.
 - 小 IC driver 放在 BSP 私有实现中,不暴露给 app.
+- root app (`main/`) 是空构建入口,能力验证统一走 `components/bsp/test_app`.
 
 详细状态见:
 
@@ -37,7 +38,7 @@ main/         # 当前 root app 入口
 
 - 公开 API 保持简单,稳定,可解释.
 - 核心 BSP API 只暴露 `esp_err_t`,基础 C 类型和 BSP 自有类型.
-- 不在核心 API 中直接暴露 ESP-IDF,LVGL 或第三方 driver 类型.
+- 原生对象只通过明确命名的 escape hatch 暴露,例如 LVGL 的 `bsp_ui_get_lvgl_display()`,I2C 总线的 `bsp_i2c_acquire()`.
 - 板级差异由 `components/bsp/src/boards/<board>/` 消化.
 - 小芯片 driver 放在 `components/bsp/src/drivers/`,作为 BSP 私有实现.
 - 不做 runtime board detect,不做 board database,不做通用 bus HAL.
@@ -58,25 +59,24 @@ idf.py build
 
 ## BSP Test Apps
 
-每个 BSP 能力都有独立 test app:
+主要 BSP 能力有独立 test app,其余通过 shell 命令验证:
 
 ```text
-components/bsp/test_app/board
-components/bsp/test_app/display
-components/bsp/test_app/touch
-components/bsp/test_app/sdcard
-components/bsp/test_app/gnss
-components/bsp/test_app/imu
 components/bsp/test_app/audio
 components/bsp/test_app/camera
+components/bsp/test_app/pmu
+components/bsp/test_app/shell
 components/bsp/test_app/ui
 ```
+
+`imu`, `sdcard`, `gnss` 测试已合并到 shell 命令中;board info 由 shell `bsp info` 验证.
 
 构建示例:
 
 ```sh
-idf.py -C components/bsp/test_app/board build
-idf.py -C components/bsp/test_app/touch build
+idf.py -C components/bsp/test_app/audio build
+idf.py -C components/bsp/test_app/ui build
+cd components/bsp/test_app && ./bsp.sh audio doers3 build
 ```
 
 部分 test app 需要真机和人工观察,具体状态见 `docs/bsp/status.md`.

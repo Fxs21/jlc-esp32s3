@@ -285,7 +285,7 @@ temp      C: 33.71
 
 | BSP 模块 | 当前状态 | 依据 |
 |---|---|---|
-| `bsp_board` | 已实现 | board test 已确认 capabilities 包含 display,touch,backlight,sdcard,gnss,imu,audio,pmu;camera no |
+| `bsp_board` | 已实现 | shell `bsp info` 已确认 desc.present: display,touch,backlight,sdcard,gnss,imu,audio,pmu 为 true,camera 为 false |
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL demo widgets 真机确认 |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping |

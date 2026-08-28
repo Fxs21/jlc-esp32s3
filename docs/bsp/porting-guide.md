@@ -364,7 +364,7 @@ Camera 是可选 build capability, board.cmake 中通过 `if(CONFIG_BSP_ENABLE_C
 
 - common source 列表 (`src/common/bsp_i2c.c`, `src/common/ui.c`, `src/common/sdcard.c`, `src/common/audio.c`, `src/common/lvgl/*`)
 - priv_include_dirs 列表 (`src`, `src/common`, `src/common/lvgl`, `src/drivers/*`)
-- priv_requires 列表 (`driver`, `esp_driver_i2c`, `esp_lcd`, `esp_timer`, `fatfs`, `freertos`, `sdmmc`)
+- priv_requires 列表 (`driver`, `esp_lcd`, `esp_timer`, `fatfs`, `freertos`, `sdmmc`);`esp_driver_i2c` 与 `lvgl__lvgl` 在 public `REQUIRES` 中
 
 新增 board 时只需要:
 

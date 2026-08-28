@@ -9,7 +9,7 @@
 - DoerS3 和 AuraS3 都按同一组 public API 接入,board 差异由 board port 消化.
 - 复杂 BSP 能力通过 `components/bsp/test_app/<name>` 单独验证;UART 外设 (如 GNSS) 和简单 I2C 外设 (如 IMU) 以及 SDCard 通过 shell 测试.
 - camera test_app 因同时使用 camera + display + backlight,使用 `main/idf_component.yml` 声明 `espressif/esp32-camera` 依赖,并启用 `CONFIG_BSP_ENABLE_CAMERA=y`.
-- shell 作为手动 bring-up/debug 工具存在于 `components/bsp/test_app/shell`,但 `components/bsp` 不依赖 shell.
+- shell 实现在 `components/shell`,`components/bsp/test_app/shell` 作为调试入口包装它;`components/bsp` 不依赖 shell.
 
 ## 当前结构
 
@@ -19,7 +19,7 @@
 - `components/bsp/src/boards/auras3/`: AuraS3 board port.
 - `components/bsp/src/drivers/`: BSP 私有 IC driver.
 - `components/bsp/test_app/`: BSP test_app 和 shell 调试 app.
-- `test_app` 当前包含: audio, board, camera, pmu, shell, touch, ui. `imu`, `sdcard`, `gnss` 测试已合并到 shell 命令中.
+- `test_app` 当前包含: audio, camera, pmu, shell, ui. `imu`, `sdcard`, `gnss` 测试已合并到 shell 命令中;board info 由 shell `bsp info` 验证.
 
 ## CMake / board 选择
 
@@ -31,7 +31,7 @@
 
 ## Public API 当前能力
 
-- `bsp_board`: board id,name,capabilities.
+- `bsp_board`: board id,name. 各外设可用性由各自 `*_get_desc()` 的 `present` 字段表达.
 - `bsp_display`: 低层 board-native async transfer API,只表达 native area write + wait.
 - `bsp_ui`: application UI entry,组合 LVGL display,touch,backlight.
 - `bsp_touch`: touch point 读取.
@@ -55,7 +55,7 @@
 
 ## DoerS3 当前能力
 
-- Board: board info / capabilities 可读取.
+- Board: board id,name 可读取;各外设 desc.present 按真机状态返回.
 - Display: ST7789 已接入,当前 native display contract 为 little-endian RGB565,LVGL flush 不做 byte swap.
 - Touch: FT6336 已接入.
 - Backlight: LEDC backlight 已接入.
@@ -67,7 +67,7 @@
 
 ## AuraS3 当前能力
 
-- Board: capabilities 当前为 display,touch,backlight,imu,audio,gnss,sdcard,pmu;camera 不存在.
+- Board: board id,name 可读取;desc.present 为 true 的外设有 display,touch,backlight,imu,audio,gnss,sdcard,pmu,camera 为 false.
 - Display: CO5300 QSPI AMOLED 466x466,native contract 为 high-byte-first RGB565 stream,align 2x2,gap 6,0;init table 已按厂家序列收敛为 `FE 00` / `C4 80` / `3A 55` / `35 00` / `53 20` / `51 00` / `63 FF` / `2A` / `2B` / `11` delay 60ms / `29`.
 - UI: LVGL PARTIAL render,dirty area 2-pixel rounder,RGB565 swap enabled,TE wait disabled by default.
 - Backlight: CO5300 command `0x51`,public percent 0..100,默认 brightness 0,UI 首帧后再打开亮度.
@@ -84,9 +84,9 @@
 - `git diff --check` 和 `tools/check.sh` 已通过.
 - DoerS3 真机已确认: shell test 正常,UI test 正常.
 - DoerS3 真机已确认: ST7789 little-endian native contract + LVGL flush no swap 正常.
-- DoerS3 真机已确认: board,touch,camera test_app 均正常 (camera: 单帧->viewfinder 200 帧);IMU,SDCard,GNSS 通过 shell 命令验证.
+- DoerS3 真机已确认: shell 与 camera test_app 均正常 (camera: 单帧->viewfinder 200 帧);IMU,SDCard,GNSS 通过 shell 命令验证.
 - DoerS3 真机已确认: camera test_app viewfinder ~10 FPS (QvGA RGB565 ~153KB/frame byte-swap + SPI DMA @80MHz).
-- AuraS3 真机已确认: board capabilities 正常,`camera: no`.
+- AuraS3 真机已确认: shell `bsp info` 显示各外设 present 正常,`camera: no`.
 - AuraS3 真机已确认: shell `imu read` 可读取 accel/gyro/temp 数据.
 - AuraS3 真机已确认: shell `sd info` 可显示 SD card 类型、容量、挂载信息和 FS 统计.
 - AuraS3 真机已确认: audio test_app tone/rec 测试正常,ES8311/ES7210 open 正常.
