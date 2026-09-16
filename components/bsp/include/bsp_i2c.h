@@ -14,18 +14,14 @@ extern "C" {
 #define BSP_I2C_SCAN_LAST_ADDR  0x77u
 #define BSP_I2C_SCAN_DEFAULT_TIMEOUT_MS 50u
 
-// Board-specific I2C bus configuration, provided by each board port.
-typedef struct {
-    i2c_port_num_t port;
-    gpio_num_t sda;
-    gpio_num_t scl;
-    uint8_t glitch_ignore_cnt;
-    bool internal_pullup;
-} bsp_i2c_bus_config_t;
-
 // Acquire the board I2C bus. On the first call the bus is created and
 // initialised. The returned handle is written to *out_bus.
 // Each acquire must be paired with bsp_i2c_release().
+//
+// This is the one named escape hatch of the public API: it returns the native
+// ESP-IDF bus handle so that an app can attach its own I2C device. Apps must go
+// through this entry point instead of creating a second bus on the same pins;
+// bus pins and parameters are board truth and live inside the board port.
 esp_err_t bsp_i2c_acquire(i2c_master_bus_handle_t *out_bus);
 
 // Release one reference. On the last release the bus is torn down.

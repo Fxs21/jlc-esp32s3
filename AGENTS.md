@@ -25,7 +25,8 @@
 
 - 核心 BSP API 只暴露 `esp_err_t`,基础 C 类型,BSP 自有 `struct` / `enum`.
 - 核心 BSP API 不直接暴露 ESP-IDF,LVGL 或第三方 driver 类型.
-- 如确需暴露原生对象,只能作为明确命名的 integration / escape hatch,例如 `bsp_ui_get_lvgl_display()`.
+- 如确需暴露原生对象,只能作为明确命名的 integration / escape hatch. 当前只有两个: `bsp_ui_get_lvgl_display()` 暴露 LVGL 类型,`bsp_i2c_acquire()` 暴露原生 I2C bus handle.
+- 公开头文件的 include 边界由 `tools/check.sh` 强制: 除上述两个具名例外,只允许 C 标准库头和 `esp_err.h`.
 - 外设生命周期优先使用 `open/close`;运行态操作使用清楚的动词,例如 `read/write/start/stop/capture/release`.
 - 不做 runtime registry,不做通用 `bsp_hal_*`,不做大 `boarddb`,不做运行时 board detect.
 - 未经确认的硬件事实,slot layout,bus 时序或实验能力,不进入稳定公共 API.

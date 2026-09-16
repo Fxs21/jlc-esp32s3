@@ -1,4 +1,5 @@
 #include "bsp_i2c.h"
+#include "bsp_i2c_internal.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -11,9 +12,6 @@
 #include "freertos/semphr.h"
 
 #define TAG "bsp_i2c"
-
-// Board must define this — provides pin/port configuration.
-extern const bsp_i2c_bus_config_t *bsp_i2c_get_config(void);
 
 // ---------------------------------------------------------------------------
 // Singleton bus with ref-count

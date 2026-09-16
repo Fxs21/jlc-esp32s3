@@ -1,5 +1,5 @@
 #include "bsp_board.h"
-#include "bsp_i2c.h"
+#include "bsp_i2c_internal.h"
 
 #include "auras3_pins.h"
 

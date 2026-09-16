@@ -53,6 +53,7 @@ components/
 - 核心 API 只暴露 `esp_err_t`,基础 C 类型,BSP 自有 `struct` / `enum`.
 - 不在核心 API 中直接暴露 ESP-IDF 或第三方 driver 类型.
 - 当前 UI 只支持 LVGL,不设计多 UI backend;允许 `bsp_ui_*` 暴露 LVGL 类型,但函数名必须明确带 `lvgl`.
+- I2C bus 是另一处具名例外: `bsp_i2c_acquire()` 返回原生 `i2c_master_bus_handle_t`,公开它的理由是防止 app 在同一组 pin 上另开第二条 bus. bus 的 port,pin 和参数属于 board truth,留在 `src/common/bsp_i2c_internal.h`.
 - 外设生命周期优先使用 `open/close`.
 - `open()` 在验证输出指针后必须先将 `*out_handle` / `*out_xxx` 置为 `NULL`;失败返回时调用者不得保留旧 handle.
 - `close(NULL)` 是调用参数错误,统一返回 `ESP_ERR_INVALID_ARG`.
@@ -169,10 +170,11 @@ private driver 不负责:
 ### I2C Bus Service
 
 - `bsp_i2c` 是 board-owned public bus service,不是通用 I2C HAL.
-- board port 通过 `bsp_i2c_get_config()` 提供默认 bus truth (port,pin,pull-up,glitch filter).
+- board port 通过 `bsp_i2c_get_config()` 提供默认 bus truth (port,pin,pull-up,glitch filter);结构体和声明在内部头 `src/common/bsp_i2c_internal.h`,不进入公开 API.
 - `src/common/bsp_i2c.c` 是单例 bus owner,负责 acquire/release/refcount/I2C 创建和销毁,避免每个外设重复初始化 I2C bus.
 - `bsp_i2c_scan()` 和 `bsp_i2c_probe()` 面向 shell/app 诊断,只表达 7-bit address,不允许 app 自己选择 board pin.
 - `bsp_i2c_acquire()` 是唯一入口: 首次调用时创建 bus,后续递增 refcount. 调用者必须配对 `bsp_i2c_release()`.
+- `bsp_i2c_acquire()` 是 public API 中唯一暴露 ESP-IDF 类型的逃生舱,供 app 挂接自己的 I2C 器件;不要为一个便利接口再扩大这个例外.
 - app 若要访问板载芯片,仍应优先使用对应 BSP 外设 API,不要绕过 BSP 直接操作板载 device address.
 
 ### SD Card

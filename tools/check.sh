@@ -133,6 +133,46 @@ if failed:
 print("dependency check passed")
 PY
 
+echo
+echo "== public header include boundary check =="
+
+python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+public_headers = Path("components/bsp/include")
+header_names = {path.name for path in public_headers.glob("*.h")}
+
+# Always allowed in a public BSP header: esp_err.h and the C standard library.
+allowed_global = {"esp_err.h"}
+stdlib_prefixes = ("std", "sys/")
+
+# The only named escape hatches allowed to pull in an external type header.
+allowed_external = {
+    "bsp_i2c.h": {"driver/i2c_master.h"},
+    "bsp_ui.h": {"lvgl.h"},
+}
+
+include_re = re.compile(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.MULTILINE)
+
+failed = False
+for path in sorted(public_headers.glob("*.h")):
+    allowed_here = allowed_global | allowed_external.get(path.name, set())
+    for include in include_re.findall(path.read_text(errors="ignore")):
+        if include in allowed_here:
+            continue
+        if include.startswith(stdlib_prefixes) or include in header_names:
+            continue
+        print(f"public header include not allowed: {path}: {include}")
+        failed = True
+
+if failed:
+    sys.exit(1)
+
+print("public header include boundary check passed")
+PY
+
 if [ "${CHECK_BUILD:-0}" = "1" ]; then
     echo
     echo "== idf.py build =="

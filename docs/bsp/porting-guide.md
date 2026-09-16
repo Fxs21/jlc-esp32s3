@@ -110,10 +110,10 @@ const bsp_board_info_t *bsp_board_get_info(void)
 
 ### 4.2. bsp_i2c_get_config()
 
-提供 board 专用的 I2C bus 配置. `src/common/bsp_i2c.c` 通过 `extern` 声明调用此函数,首次 `bsp_i2c_acquire()` 时自动获取配置并初始化 bus.
+提供 board 专用的 I2C bus 配置. 结构和声明都在内部头 `src/common/bsp_i2c_internal.h`,不进入公开 API;`src/common/bsp_i2c.c` 在首次 `bsp_i2c_acquire()` 时读取它并初始化 bus.
 
 ```c
-#include "bsp_i2c.h"
+#include "bsp_i2c_internal.h"
 #include "<board>_pins.h"
 
 const bsp_i2c_bus_config_t *bsp_i2c_get_config(void)
