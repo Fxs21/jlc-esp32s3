@@ -1,93 +1,96 @@
 # jlc-esp32s3
 
-ESP32-S3 board support project for DoerS3 and AuraS3.
+ESP32-S3 双板工程,目标硬件是 DoerS3 和 AuraS3.
 
-当前重点是维护 `components/bsp`,为不同开发板提供统一,稳定,简单的 BSP API.应用层只依赖公开 BSP API,不直接感知具体开发板的 pin,bus,chip driver 或 power sequence.
+## 1. 仓库目的
 
-## 当前状态
+同一套 LVGL 应用要跑在两块 pin,bus,芯片和上下电时序完全不同的板子上. 如果 app 直接写 GPIO,寄存器或芯片驱动,换一块板就要重写一遍.
 
-- DoerS3 是当前主要验证板.
-- AuraS3 保留相同 BSP API 形态,部分能力仍为 stub.
-- BSP 已收敛为单一组件:`components/bsp`.
-- App 应通过 `bsp_xxx` public API 使用外设能力.
-- 小 IC driver 放在 BSP 私有实现中,不暴露给 app.
-- root app (`main/`) 是空构建入口,能力验证统一走 `components/bsp/test_app`.
+所以本仓库分两层:
 
-详细状态见:
+- BSP 层 `components/bsp`: 消化两块板的硬件差异,对上层暴露同一组 `bsp_xxx` public API.
+- 应用层: 只调用 `bsp_xxx`,不 include 板级头文件,不碰芯片寄存器,换板不改代码.
 
-- `docs/bsp/status.md`
-- `docs/bsp_design.md`
-- `docs/hw/boards/doers3_truth_table.md`
-- `docs/hw/boards/auras3_truth_table.md`
+BSP 是手段,不是目的. 目的有两个:
 
-## 目录结构
+1. 让同一个 app 在 DoerS3 / AuraS3 上都能稳定运行.
+2. 用真实应用持续验证 BSP.
+
+正式承载的应用还没有定;选定前 BSP 只保证 `components/bsp/test_app` 已验证的能力.
+
+## 2. 当前状态
+
+| 目标板 | 状态 |
+|---|---|
+| DoerS3 | 主验证板. display,touch,backlight,sdcard,imu,audio,camera,gnss 全部真机通过 |
+| AuraS3 | 外设已接入并真机验证. 无 camera;GNSS 硬件未连接,待验证 |
+
+逐项能力见 `docs/bsp/capabilities.md`;真机结论和时间线见 `docs/bsp/status.md`.
+
+验证入口是 `components/bsp/test_app/*`: `audio`,`camera`,`pmu`,`shell`,`ui`.
+
+## 3. 仓库构成
 
 ```text
-components/
-  bsp/        # 统一 BSP 组件
-  shell/      # 独立调试 shell,不属于 BSP
-
-docs/
-  bsp/        # BSP 文档入口和当前状态
-  hw/boards/  # board 硬件事实表
-
-main/         # 当前 root app 入口
+components/bsp/       # 唯一对外交付组件: public API + board port + 私有 driver + test_app
+components/shell/     # 独立调试 shell,不属于 BSP
+main/                 # 应用入口壳,能力验证走 components/bsp/test_app
+docs/                 # 设计,状态,接入指南和硬件事实
 ```
 
-## BSP 设计原则
+`main/` 当前是空入口,只为让 root 工程能被 `idf.py build`;不要在 `main/` 里堆能力验证代码.
 
-- 公开 API 保持简单,稳定,可解释.
-- 核心 BSP API 只暴露 `esp_err_t`,基础 C 类型和 BSP 自有类型.
-- 原生对象只通过明确命名的 escape hatch 暴露,例如 LVGL 的 `bsp_ui_get_lvgl_display()`,I2C 总线的 `bsp_i2c_acquire()`.
-- 板级差异由 `components/bsp/src/boards/<board>/` 消化.
-- 小芯片 driver 放在 `components/bsp/src/drivers/`,作为 BSP 私有实现.
+## 4. BSP 使用边界
+
+- app 只 include `components/bsp/include/` 下的头文件.
+- public API 只暴露 `esp_err_t`,基础 C 类型和 BSP 自有 `struct` / `enum`.
+- 原生对象只通过明确命名的 escape hatch 暴露,例如 `bsp_ui_get_lvgl_display()`,`bsp_i2c_acquire()`.
 - 不做 runtime board detect,不做 board database,不做通用 bus HAL.
+- 板级差异只存在于 `components/bsp/src/boards/<board>/`.
 
-## 构建
+完整规则见 `docs/bsp_design.md`.
 
-进入 ESP-IDF 环境:
+## 5. 快速开始
 
 ```sh
 source ~/esp/esp-idf/export.sh
-```
-
-构建 root app:
-
-```sh
 idf.py build
 ```
 
-## BSP Test Apps
-
-主要 BSP 能力有独立 test app,其余通过 shell 命令验证:
-
-```text
-components/bsp/test_app/audio
-components/bsp/test_app/camera
-components/bsp/test_app/pmu
-components/bsp/test_app/shell
-components/bsp/test_app/ui
-```
-
-`imu`, `sdcard`, `gnss` 测试已合并到 shell 命令中;board info 由 shell `bsp info` 验证.
-
-构建示例:
+BSP test app:
 
 ```sh
-idf.py -C components/bsp/test_app/audio build
-idf.py -C components/bsp/test_app/ui build
-cd components/bsp/test_app && ./bsp.sh audio doers3 build
+cd components/bsp/test_app
+./bsp.sh ui doer build flash monitor
+./bsp.sh audio aura build flash monitor
 ```
 
-部分 test app 需要真机和人工观察,具体状态见 `docs/bsp/status.md`.
-
-## Board 选择
-
-BSP 通过 Kconfig 选择目标 board:
+board 由 Kconfig 选择,见 `components/bsp/Kconfig`:
 
 ```text
 CONFIG_BSP_BOARD_DOERS3
 CONFIG_BSP_BOARD_AURAS3
+CONFIG_BSP_ENABLE_CAMERA
 ```
 
-DoerS3 是当前主要验证目标.AuraS3 的真实硬件适配仍在补齐中.
+## 6. 提交前检查
+
+```sh
+tools/check.sh                # API 边界,依赖和残留符号检查
+CHECK_BUILD=1 tools/check.sh  # 追加 idf.py build
+```
+
+## 7. 文档索引
+
+| 文档 | 内容 |
+|---|---|
+| `docs/bsp/capabilities.md` | 双板能力矩阵和 public API 一览 |
+| `docs/bsp/status.md` | 当前进度,已验证项,暂停项和下一步 |
+| `docs/bsp_design.md` | BSP 长期设计边界和 API 原则 |
+| `docs/bsp/porting-guide.md` | 新增 board port 的接入指南 |
+| `docs/hw/boards/doers3_truth_table.md` | DoerS3 硬件事实 |
+| `docs/hw/boards/auras3_truth_table.md` | AuraS3 硬件事实 |
+| `docs/hw/auras3-display-te.md` | AuraS3 TE 防撕裂实验记录 |
+| `docs/hw/auras3-pmu-key.md` | AuraS3 PMU / KEY2 阶段性结论 |
+| `components/shell/README.md` | 调试 shell 使用说明 |
+| `AGENTS.md` | coding agent 协作规则 |

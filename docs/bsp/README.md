@@ -1,19 +1,19 @@
-# BSP
+# BSP 文档导航
 
-`components/bsp` 是项目唯一公开 BSP 组件,用于为 DoerS3 和 AuraS3 提供统一,稳定,简单的板级 API.
+`components/bsp` 是仓库唯一对外交付的 BSP 组件. 仓库目的,构成和快速开始见根 `README.md`;本文只做 BSP 文档和代码入口的导航.
 
-app 应只依赖 `components/bsp/include` 中的公开头文件,不直接依赖 board port,私有 driver,GPIO 映射或芯片寄存器细节.
+## 文档入口
 
-## 当前方向
+| 文档 | 内容 |
+|---|---|
+| `docs/bsp/capabilities.md` | 双板能力矩阵和 public API 一览 |
+| `docs/bsp/status.md` | 当前进度,已验证项,暂停项和下一步 |
+| `docs/bsp_design.md` | 长期设计边界和 API 原则 |
+| `docs/bsp/porting-guide.md` | 新增 board port 的接入指南 |
+| `docs/hw/boards/doers3_truth_table.md` | DoerS3 硬件事实 |
+| `docs/hw/boards/auras3_truth_table.md` | AuraS3 硬件事实 |
 
-- 一组公共 API,同时支持 DoerS3 和 AuraS3 board port.
-- board 差异放在 `components/bsp/src/boards/<board>/`.
-- 小 IC driver 优先由 BSP 私有管理,放在 `components/bsp/src/drivers/`.
-- 跨板复用逻辑只放在 `components/bsp/src/common/`,例如 shared I2C bus owner,common UI lifecycle,LVGL buffer helper 和 unsupported stubs.
-- 原生对象只通过明确命名的 escape hatch 暴露:LVGL 用 `bsp_ui_get_lvgl_display()`,I2C 总线用 `bsp_i2c_acquire()`.
-- `components/shell` 不是 BSP 的一部分,但 `components/bsp/test_app/shell` 可以把 shell 作为 BSP 调试入口.
-
-## 目录入口
+## 代码入口
 
 ```text
 components/bsp/include/          # app 可见 BSP API
@@ -24,42 +24,16 @@ components/bsp/test_app/         # BSP 能力验证工程
 components/shell/                # 可选调试组件,BSP 不依赖它
 ```
 
-## 文档入口
-
-- 设计边界: `docs/bsp_design.md`
-- 当前状态: `docs/bsp/status.md`
-- DoerS3 硬件真值表: `docs/hw/boards/doers3_truth_table.md`
-- AuraS3 硬件真值表: `docs/hw/boards/auras3_truth_table.md`
-- AuraS3 display TE 记录: `docs/hw/auras3-display-te.md`
-- AuraS3 PMU / KEY2 记录: `docs/hw/auras3-pmu-key.md`
-- Agent 协作规则: `AGENTS.md`
-
 ## 验证入口
 
-BSP test_app 位于:
-
-```text
-components/bsp/test_app/<name>
-```
-
-当前 app:
-
-```text
-audio
-camera
-pmu
-shell
-ui
-```
-
-`imu`, `sdcard`, `gnss` 测试已合并到 `shell` 命令中;board info 由 shell `bsp info` 验证,不保留独立 test_app.
-
-常用方式:
-
-```bash
+```sh
 cd components/bsp/test_app
 ./bsp.sh <app> <auras3|aura|doers3|doer> build
 ./bsp.sh <app> <auras3|aura|doers3|doer> build flash monitor
 ```
 
-`bsp.sh` 会在 app 目录生成真实 `sdkconfig` 和 `build/`,并在切换 board 时自动清理 app-local `sdkconfig` / `build/`.
+当前 app: `audio`, `camera`, `pmu`, `shell`, `ui`.
+
+`imu`, `sdcard`, `gnss` 测试已合并到 shell 命令;board info 由 shell `bsp info` 验证,不保留独立 test_app.
+
+`bsp.sh` 会在 app 目录生成真实 `sdkconfig` 和 `build/`,切换 board 时自动清理 app-local `sdkconfig` 和 `build/`.

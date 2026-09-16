@@ -1,9 +1,14 @@
 # BSP 当前状态
 
-本文档只记录 `components/bsp` 的当前状态,已验证内容,缺口和下一步.长期设计原则见 `docs/bsp_design.md`.
+本文档只记录 `components/bsp` 的当前状态,已验证内容,缺口和下一步.
+
+- 仓库目的和构成: `README.md`
+- 双板能力矩阵: `docs/bsp/capabilities.md`
+- 长期设计原则: `docs/bsp_design.md`
 
 ## 当前目标
 
+- BSP 服务于"同一个 app 稳定跑在 DoerS3 / AuraS3 上",不是独立产品;正式承载应用未定.
 - 保持一个公开 BSP 组件: `components/bsp`.
 - app 面向统一 BSP API 编写,不直接依赖 board port 或私有 driver.
 - DoerS3 和 AuraS3 都按同一组 public API 接入,board 差异由 board port 消化.

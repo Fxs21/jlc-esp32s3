@@ -144,6 +144,8 @@ private driver 不负责:
 - `data_size` 只做内存安全校验,不表达 host-order RGB565 语义.
 - public display API 不提供 `fill`,`colorbars` 或 host-order writer.
 - app UI 应优先使用 `bsp_ui_*`,不要假设不同 board 的 native display byte order 相同.
+- board port 直接实现 `bsp_display_*` 公共 API,不存在中间 core 层.
+- LVGL port 是 internal bridge,由 board display 实现处理 native flush 和 transfer callback.
 - backlight API 表达亮度和开关,不暴露具体 PWM,IOEXP 或 panel command.
 - backlight 的 `present=false` 和 `get_desc()/open()` 返回 unsupported 由 board port 的 descriptor 和实现直接承担.
 
@@ -152,6 +154,8 @@ private driver 不负责:
 - touch API 返回 BSP 自有 touch point 结构.
 - 不暴露 `esp_lcd_touch_point_data_t`.
 - 坐标方向,swap,mirror 等由 board port 消化.
+- board port 直接实现 `bsp_touch_*` 公共 API,不存在中间 core 层.
+- 触点坐标和方向校正在 board port 内完成,app 不暴露具体触控芯片配置.
 
 ### UI
 
@@ -174,62 +178,52 @@ private driver 不负责:
 ### SD Card
 
 - sdcard API 表达 mount/unmount 和挂载点.
-|- public sdcard API 在 `src/common/sdcard.c` 中由 common 层实现;board port 通过 `bsp_sdcard_get_pins()` 提供 pin 配置.
+- public sdcard API 在 `src/common/sdcard.c` 中由 common 层实现;board port 通过 `bsp_sdcard_get_pins()` 提供 pin 配置.
 - 不在核心 API 中暴露 `sdmmc_card_t`.
 - board port 可选择 SDMMC 或 SDSPI,但 public API 不暴露 bus 细节.
 - 如后续确需访问原生 card handle,应单独设计明确的 ESP-IDF escape hatch.
 
 ### GNSS
 
-|- GNSS API 表达串口数据读取,NMEA 数据可用性或后续解析结果.
-|- board port 直接实现 `bsp_gnss_*` 公共 API,不存在中间 core 层.
-|- UART 选择,波特率默认值和电源/reset 控制由 board port 负责.
-|- raw NMEA 输出可以作为早期 test_app / shell 验证路径,稳定结构化定位 API 可后续再收敛.
+- GNSS API 表达串口数据读取,NMEA 数据可用性或后续解析结果.
+- board port 直接实现 `bsp_gnss_*` 公共 API,不存在中间 core 层.
+- UART 选择,波特率默认值和电源/reset 控制由 board port 负责.
+- raw NMEA 输出可以作为早期 test_app / shell 验证路径,稳定结构化定位 API 可后续再收敛.
 
 ### IMU
 
-|- IMU API 返回 BSP 自有数据结构.
-|- board port 直接实现 `bsp_imu_*` 公共 API,不存在中间 core 层.
-|- 字段名应带单位,例如 `accel_mps2_x`,`gyro_rads_x`,`temperature_c`,`timestamp_ms`.
-|- 具体芯片寄存器配置留在 private driver 和 board port 内部.
-
-### Touch
-
-|- board port 直接实现 `bsp_touch_*` 公共 API,不存在中间 core 层.
-|- 触点坐标和方向校正在 board port 内完成,app 不暴露具体触控芯片配置.
-
-### Display
-
-|- board port 直接实现 `bsp_display_*` 公共 API,不存在中间 core 层.
-|- LVGL port 是 internal bridge,由 board display 实现处理 native flush 和 transfer callback.
+- IMU API 返回 BSP 自有数据结构.
+- board port 直接实现 `bsp_imu_*` 公共 API,不存在中间 core 层.
+- 字段名应带单位,例如 `accel_mps2_x`,`gyro_rads_x`,`temperature_c`,`timestamp_ms`.
+- 具体芯片寄存器配置留在 private driver 和 board port 内部.
 
 ### Audio
 
-|- audio API 使用最小句柄模型: `open/close` 管资源,`play_*` 管播放,`record_*` 管录音.
-|- board port 直接导出 `bsp_audio_*` 公共 API 符号,内部委托给 `src/common/audio.c` 中共享的 I2S+codec 逻辑.
-|- board port 通过 `bsp_audio_pins_t` pin 配置结构和 `bsp_audio_pa_fn` PA callback 参数化公共逻辑.
-|- playback 和 record 可以共享同一个 handle,但公共 API 不暴露 I2S bus,codec handle 或 slot layout.
-|- read/write 返回实际读写长度,并由调用者传入 `timeout_ms`.
-|- 当前稳定语义是 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
-|- MIC3 playback reference,TDM,AEC 属于暂停的实验方向;未确认前不进入稳定 API.
+- audio API 使用最小句柄模型: `open/close` 管资源,`play_*` 管播放,`record_*` 管录音.
+- board port 直接导出 `bsp_audio_*` 公共 API 符号,内部委托给 `src/common/audio.c` 中共享的 I2S+codec 逻辑.
+- board port 通过 `bsp_audio_pins_t` pin 配置结构和 `bsp_audio_pa_fn` PA callback 参数化公共逻辑.
+- playback 和 record 可以共享同一个 handle,但公共 API 不暴露 I2S bus,codec handle 或 slot layout.
+- read/write 返回实际读写长度,并由调用者传入 `timeout_ms`.
+- 当前稳定语义是 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
+- MIC3 playback reference,TDM,AEC 属于暂停的实验方向;未确认前不进入稳定 API.
 
 ### Camera
 
-|- camera API 优先提供最小单帧采集: `open -> capture -> release_frame -> close`.
-|- DoerS3 board port 直接实现 `bsp_camera_*` 公共 API;AuraS3 的 unsupported 由 `src/common/unsupported/camera_unsupported.c` 提供.
-|- frame release 必须带回对应 `bsp_camera_frame_t`,避免多 buffer 时语义不清.
-|- AuraS3 无 camera 硬件,必须返回 `ESP_ERR_NOT_SUPPORTED`,且不声明 camera capability.
-|- DoerS3 camera 是可选 build capability;只有 `CONFIG_BSP_ENABLE_CAMERA=y` 时才编译 camera port,声明 camera capability 并链接 `esp32-camera` / `esp_jpeg`.
-|- 启用 DoerS3 camera 的 app 必须在自己的 `idf_component.yml` 中声明 `espressif/esp32-camera` 和 `espressif/esp_jpeg` 依赖;BSP 默认不强制所有 app 下载和编译 camera 组件.
-|- 连续流,JPEG,图像显示,传感器参数调节可以后续增量设计.
+- camera API 优先提供最小单帧采集: `open -> capture -> release_frame -> close`.
+- DoerS3 board port 直接实现 `bsp_camera_*` 公共 API;AuraS3 的 unsupported 由 `src/common/unsupported/camera_unsupported.c` 提供.
+- frame release 必须带回对应 `bsp_camera_frame_t`,避免多 buffer 时语义不清.
+- AuraS3 无 camera 硬件,必须返回 `ESP_ERR_NOT_SUPPORTED`,且不声明 camera capability.
+- DoerS3 camera 是可选 build capability;只有 `CONFIG_BSP_ENABLE_CAMERA=y` 时才编译 camera port,声明 camera capability 并链接 `esp32-camera` / `esp_jpeg`.
+- 启用 DoerS3 camera 的 app 必须在自己的 `idf_component.yml` 中声明 `espressif/esp32-camera` 和 `espressif/esp_jpeg` 依赖;BSP 默认不强制所有 app 下载和编译 camera 组件.
+- 连续流,JPEG,图像显示,传感器参数调节可以后续增量设计.
 
 ### PMU
 
-|- PMU API 第一阶段只表达只读状态和已映射事件: `open` / `close` / `get_status` / `get_events`.
-|- AuraS3 board port 直接实现 `bsp_pmu_*` 公共 API;DoerS3 的 unsupported stub 由 `src/common/unsupported/pmu_unsupported.c` 提供.
-|- public status 暴露 VBUS,电池,充电,电压和温度,不暴露 AXP2101 raw register 或 TCA9554 raw 电平.
-|- 充电参数,DCDC/LDO rail control 和 software power-off 在板级验证前不进入稳定 public API.
-|- raw IRQ / raw status 只能作为 bring-up 临时调试手段,结论确认后应删除或留在 internal-only debug,不能进入稳定 public API.
+- PMU API 第一阶段只表达只读状态和已映射事件: `open` / `close` / `get_status` / `get_events`.
+- AuraS3 board port 直接实现 `bsp_pmu_*` 公共 API;DoerS3 的 unsupported stub 由 `src/common/unsupported/pmu_unsupported.c` 提供.
+- public status 暴露 VBUS,电池,充电,电压和温度,不暴露 AXP2101 raw register 或 TCA9554 raw 电平.
+- 充电参数,DCDC/LDO rail control 和 software power-off 在板级验证前不进入稳定 public API.
+- raw IRQ / raw status 只能作为 bring-up 临时调试手段,结论确认后应删除或留在 internal-only debug,不能进入稳定 public API.
 
 ## 9. 错误语义
 
@@ -326,11 +320,14 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 
 ## 15. 文档分工
 
+- `README.md`: 仓库目的,构成,快速开始和文档索引.
 - `docs/bsp/README.md`: BSP 文档入口和导航.
+- `docs/bsp/capabilities.md`: 双板能力矩阵和 public API 一览.
 - `docs/bsp/porting-guide.md`: Board port 接入指南和每个文件的实现模板.
 - `docs/bsp_design.md`: 长期设计边界和 API 原则.
 - `docs/bsp/status.md`: 当前状态,已完成项,缺口和下一步.
 - `docs/hw/boards/*_truth_table.md`: 硬件事实,pin,bus,芯片连接和待确认项.
 - `docs/hw/auras3-display-te.md`: AuraS3 CO5300 TE 实验记录和当前取舍.
 - `docs/hw/auras3-pmu-key.md`: AuraS3 AXP2101 PMU,KEY2,SYS_OUT 和 AXP_IRQ 阶段性结论.
+- `components/shell/README.md`: 调试 shell 使用说明.
 - `AGENTS.md`: 给 Codex / coding agent 的协作规则.

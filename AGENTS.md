@@ -4,9 +4,11 @@
 
 ## 1. 项目目标
 
+- 让同一个 app 稳定跑在 DoerS3 和 AuraS3 上;BSP 是手段,不是目的.
 - 维护 `components/bsp`,为 DoerS3 和 AuraS3 提供统一 BSP 能力.
 - app 面向稳定,简单,可解释的 BSP API 编写,不直接感知具体开发板的 pin,bus,chip 差异.
 - 板级差异由 `components/bsp/src/boards/<board>/` 消化.
+- 正式承载的应用尚未确定;未定的应用方向不要写进文档或公共 API.
 - 当前优先保证 DoerS3 路径稳定可用;AuraS3 可以先保留 stub,但公共 API 不能被 DoerS3 私有细节污染.
 
 ## 2. 工作方式
