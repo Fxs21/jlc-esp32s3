@@ -26,7 +26,7 @@
 
 当前内置诊断命令:
 
-- `i2c_scan [sda scl [port]]`: 扫描 I2C 7-bit 地址; 也可用 `i2c scan [sda scl [port]]`
+- `i2c scan` / `i2c_scan`: 扫描 BSP 默认 I2C bus 的 7-bit 地址; 固定使用 board 默认总线, 不接受自定义 pin
 
 当前可选 BSP 调试命令:
 
@@ -82,28 +82,23 @@ void app_main(void)
 }
 ```
 
-可直接参考可运行示例: `components/shell/test_app/main/test_shell.c`.
-该示例会打印当前编译进来的 BSP board 名称; 如果当前 board 的 SD 尚未实现, 会自动从 `/` 启动 shell, 便于先运行 `i2c_scan` 等无文件系统依赖的诊断命令.
+可直接参考可运行示例: `components/bsp/test_app/shell/main/test_shell.c`.
+该示例会打印当前编译进来的 BSP board 名称; 如果当前 board 的 SD 尚未实现, 会自动从 `/` 启动 shell, 便于先运行 `i2c scan` 等无文件系统依赖的诊断命令.
 
 ### 多板型配套运行
 
-`shell/test_app` 不单独选择硬件, 它依赖 `components/bsp` 的 Kconfig board 选择. 为了在 DoerS3 / AuraS3 之间来回切换, test_app 提供分板脚本和独立配置/构建目录:
+shell 的测试入口是 `components/bsp/test_app/shell`, 它不单独选择硬件, 板型由 `components/bsp` 的 Kconfig 决定. 用 `bsp.sh` 在 DoerS3 / AuraS3 之间切换:
 
 ```sh
-cd components/shell/test_app
+cd components/bsp/test_app
 
-./build-auras3.sh build flash monitor
-./build-doers3.sh build flash monitor
+./bsp.sh shell doer build flash monitor
+./bsp.sh shell aura build flash monitor
 ```
 
-脚本会分别使用:
+`bsp.sh` 为每个 app 生成 app-local `sdkconfig` 和 `build/`, 并在切换 board 时自动清理两者, 不需要手工删除旧配置. AuraS3 通过板载 USB 直连时, 它会额外写入 `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`, 让 `esp_console` REPL 走 USB Serial/JTAG 控制台.
 
-- AuraS3: `SDKCONFIG=sdkconfig.board_auras3`, `SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.board_auras3.defaults`, `build.board_auras3/`
-- DoerS3: `SDKCONFIG=sdkconfig.board_doers3`, `SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.board_doers3.defaults`, `build.board_doers3/`
-
-这样 `sdkconfig.defaults` 只保留公共默认项, 板型选择放在 `sdkconfig.board_auras3.defaults` / `sdkconfig.board_doers3.defaults`, CMake cache 也按板分开. `components/shell/test_app/.gitignore` 会忽略脚本生成的 `sdkconfig.board_*` 与 `build.board_*/`, 但保留 `*.defaults` 文件. 编译后可先看启动日志 `BSP board: AuraS3` 或 `BSP board: DoerS3`, 再在 shell 中执行 `bsp info` / `i2c_scan` 交叉确认.
-
-AuraS3 通过板载 USB 直连时, `sdkconfig.board_auras3.defaults` 会选择 `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`, 让 `esp_console` REPL 使用 USB Serial/JTAG 作为交互控制台. 如果 monitor 仍提示写入超时, 先确认本次构建使用的是 `./build-auras3.sh ...`, 而不是旧的 `build/` 或旧 `sdkconfig`.
+启动后可先看日志里的 BSP board 名称, 再执行 `bsp info` / `i2c scan` 交叉确认.
 
 ## 5. 设计边界
 

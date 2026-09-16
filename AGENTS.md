@@ -9,7 +9,7 @@
 - app 面向稳定,简单,可解释的 BSP API 编写,不直接感知具体开发板的 pin,bus,chip 差异.
 - 板级差异由 `components/bsp/src/boards/<board>/` 消化.
 - 正式承载的应用尚未确定;未定的应用方向不要写进文档或公共 API.
-- 当前优先保证 DoerS3 路径稳定可用;AuraS3 可以先保留 stub,但公共 API 不能被 DoerS3 私有细节污染.
+- DoerS3 和 AuraS3 都已接入;未验证项集中记录在 `docs/bsp/status.md`. 公共 API 不能被任何一块板的私有细节污染.
 
 ## 2. 工作方式
 
@@ -39,7 +39,7 @@
 - board port 负责 pin,bus,address,power/reset sequence,默认电平,共享资源生命周期和板级语义.
 - 可以参考已有开源/托管组件的寄存器序列和基础读写实现,但不要求为了"纯净"而完全对照手册从零实现.
 - 如果多个 board 确实复用同一芯片 driver,可以在 `src/drivers/` 内复用;但不要为了假想复用提前设计通用 HAL.
-- 除 camera,UI 这类大集成外,QMI8658,PCA9557,ES8311,ES7210 等小 IC driver 优先 BSP 私有化.
+- 除 camera,UI,display panel 这类大集成外,QMI8658,PCA9557,ES8311,ES7210 等小 IC driver 优先 BSP 私有化. display panel 当前使用外部组件 `espressif/esp_lcd_co5300`.
 
 ## 5. 文档风格
 
@@ -48,13 +48,14 @@
 
 ## 6. 验证原则
 
-- 每个 BSP 能力应有独立 `components/bsp/test_app/<name>`.
+- 复杂能力 (多外设组合,需要人工观察) 应有独立 `components/bsp/test_app/<name>`,例如 `ui`,`camera`,`audio`,`pmu`.
+- 简单 I2C/UART 外设 (如 IMU,GNSS) 和通用调试能力 (backlight,SD) 的验证合并到 shell 命令,不保留独立 test_app.
 - test_app 只依赖公开 BSP API,不 include board port 或私有 driver 头文件.
 - 自动化优先验证可构建,可运行的最小路径;需要人工动作的测试应在日志中明确提示.
-- 无法自动验证的项目要明确标注"待人工确认".
+- 无法自动验证的项目必须用 `待人工确认` 标注,并写明缺什么条件才能验证.
 - 调试日志可以临时增加,但必须服务于明确假设;得出结论并修复后,应删除或降级临时日志.
 - 构建 ESP-IDF 工程前使用 `source ~/esp/esp-idf/export.sh`.
-- 项目构建命令优先使用 `idf.py build`;不要使用 `idf.py -B build_ninja build`.
+- 项目构建命令优先使用 `idf.py build`;test_app 的构建目录统一为 `build/`,不要自造其他目录名.
 - 修改代码或文档后, 如果改动涉及 BSP, API, 文档或依赖, 应运行 `tools/check.sh`.
 - 如果用户明确要求构建验证, 或明确允许 build, 再运行 `CHECK_BUILD=1 tools/check.sh`.
 - 若 `tools/check.sh` 失败, 应先修复失败项, 不要跳过.
@@ -63,7 +64,7 @@
 
 - DoerS3 硬件事实以 `docs/hw/boards/doers3_truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改.
 - AuraS3 硬件事实以 `docs/hw/boards/auras3_truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改. truth table 中标注待确认的项,当前允许对应 board port 返回 `ESP_ERR_NOT_SUPPORTED` 或保留 stub.
-- Audio 当前只承诺 DoerS3 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
+- Audio 在两块板都只承诺 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
 - MIC3 playback reference,TDM,AEC 当前暂停,不进入稳定 BSP API.
 - shell 不是 BSP 的一部分;`components/bsp` 不应依赖 shell.
 - 修改 board port 代码后,应同步检查对应 truth table (`docs/hw/boards/<board>_truth_table.md`) 是否需要更新.例如 pin 分配变化,bus 类型切换,I2C 地址修正,新增或删除外设等都应反映到 truth table 中.

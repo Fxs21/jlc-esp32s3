@@ -108,7 +108,7 @@ private driver 不负责:
 - 不要求为了"纯净"而完全对照手册从零实现.
 - 如果多个 board 真实复用同一芯片 driver,可以在 `src/drivers/` 内复用.
 - 不为了假想复用提前设计通用 bus HAL 或 driver framework.
-- camera,UI 这类大集成可以保留外部依赖,但公共 API 必须明确边界.
+- camera,UI,display panel 这类大集成可以保留外部依赖,但公共 API 必须明确边界.
 
 ## 7. Common Layer 职责
 
@@ -277,7 +277,7 @@ CONFIG_BSP_ENABLE_CAMERA
 
 ## 12. Test App 规则
 
-每个 BSP 能力都应放在 `components/bsp/test_app/<name>` 下单独验证.
+复杂能力 (多外设组合,需要人工观察) 放在 `components/bsp/test_app/<name>` 下单独验证;简单 I2C/UART 外设和通用调试能力合并到 shell 命令验证.
 
 规则:
 
