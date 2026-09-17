@@ -94,6 +94,12 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 - `DVP_PWDN=0` 为工作态.
 - Public camera API 只承诺单帧采集: `open -> capture -> release_frame -> close`.
 
+test_app 验证:
+
+- viewfinder 连续 200 帧: `capture -> byte-swap -> bsp_display_write`,真机通过.
+- byte-swap 原因: camera 输出 big-endian RGB565,display native contract 为 little-endian RGB565.
+- 实测约 10 FPS (QVGA RGB565 ~153KB/frame + SPI DMA `@80MHz`).
+
 ### Audio, ES8311 + ES7210
 
 #### Audio 控制与 I2S

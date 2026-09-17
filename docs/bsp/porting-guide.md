@@ -89,7 +89,7 @@ endif()
 
 - 每个宏都必须以 `<BOARD>_` 前缀命名,例如 `DOERS3_LCD_DC`, `AURAS3_LCD_CS`
 - 不再使用的 pin 保留注释说明历史用途,不要直接删除. 例如 `// GPIO41 was the SDSPI CS pin; now free (SDMMC 1-bit needs only CLK/CMD/D0).`
-- AuraS3 的 `auras3_pins.h` 是参考模板,DoerS3 的 `doers3_pins.h` 是参考模板
+- `auras3_pins.h` 和 `doers3_pins.h` 都在各自 `internal/` 下,可直接参考模板写法
 
 ## 4. board.c
 
@@ -247,7 +247,7 @@ const bsp_sdcard_pins_t *bsp_sdcard_get_pins(void)
 - close 中 `i2c_master_bus_rm_device()` + `bsp_i2c_release()`
 - read 从 QMI8658 读取数据, 映射到 `bsp_imu_data_t` (带单位字段名)
 
-参考: `doers3/imu.c` (105 行, 单一地址), `auras3/imu.c` (119 行, 双地址 fallback).
+参考: `doers3/imu.c` (单一地址), `auras3/imu.c` (双地址 fallback).
 
 ## 10. audio.c
 
@@ -273,7 +273,7 @@ struct bsp_audio_s {
 - close: common 层 stop + PA off + release 资源
 - 所有 play/record 函数直接转发到 `bsp_audio_common_*` 同一组函数
 
-参考: `doers3/audio.c` (181 行, 带 IOEXP), `auras3/audio.c` (170 行, direct GPIO).
+参考: `doers3/audio.c` (带 IOEXP), `auras3/audio.c` (direct GPIO).
 
 ## 11. gnss.c
 
@@ -284,9 +284,10 @@ struct bsp_audio_s {
 - open: `uart_param_config() + uart_set_pin() + uart_driver_install()`
 - close: `uart_driver_delete()`
 - read: `uart_read_bytes()`
+- read 返回 `ESP_OK` 加真实长度;一字节都没读到返回 `ESP_ERR_TIMEOUT` (见 `docs/bsp_design.md` §2)
 - 如果 GNSS 需要通过 IOEXP 释放 reset (AuraS3), 在 open 中 acquire IOEXP 并释放 reset, close 中 release
 
-参考: `doers3/gnss.c` (80 行, 纯 UART), `auras3/gnss.c` (105 行, + IOEXP reset).
+参考: `doers3/gnss.c` (纯 UART), `auras3/gnss.c` (+ IOEXP reset).
 
 ## 12. 可选: IOEXP (internal/<board>_ioexp.c/h)
 
@@ -299,7 +300,7 @@ IO expander 用于管理板级控制信号 (LCD CS, PA enable, camera power-down
 
 - 管理 I2C device handle 创建/销毁 (通过 `bsp_i2c_acquire/release` 获取共享 I2C bus)
 - 管理 chip driver handle 创建/销毁
-- 提供 acquire/release/set_pin 三个接口
+- 提供 acquire/release/set_pin/get_pin 四个接口
 - 内部 refcount + 线程安全锁
 
 ```c
@@ -338,9 +339,9 @@ static inline esp_err_t <board>_ioexp_set_audio_pa(bool on) {
 - `bsp_pmu_get_status()`: 从 AXP2101 读取 status 映射到 `bsp_pmu_status_t`
 - `bsp_pmu_get_events()`: 从 AXP2101 读取 event 映射到 `bsp_pmu_event_t`
 
-无 PMU 的板用 `src/common/unsupported/pmu_unsupported.c` (40 行, 返回 `ESP_ERR_NOT_SUPPORTED`).
+无 PMU 的板用 `src/common/unsupported/pmu_unsupported.c` (返回 `ESP_ERR_NOT_SUPPORTED`).
 
-参考: `auras3/pmu.c` (217 行).
+参考: `auras3/pmu.c`.
 
 ### 13.2. Camera
 
@@ -352,7 +353,7 @@ static inline esp_err_t <board>_ioexp_set_audio_pa(bool on) {
 - `bsp_camera_release_frame()`: 释放 frame buffer
 - `bsp_camera_close()`: 反初始化
 
-无 camera 的板用 `src/common/unsupported/camera_unsupported.c` (38 行, 返回 `ESP_ERR_NOT_SUPPORTED`).
+无 camera 的板用 `src/common/unsupported/camera_unsupported.c` (返回 `ESP_ERR_NOT_SUPPORTED`).
 
 Camera 是可选 build capability, board.cmake 中通过 `if(CONFIG_BSP_ENABLE_CAMERA)` 条件编译.
 启用 camera 的 test_app (如 camera test_app) 还需在 app-local `main/idf_component.yml` 中声明 `espressif/esp32-camera` 依赖,并在 `sdkconfig.defaults` 中设置 `CONFIG_BSP_ENABLE_CAMERA=y`.
@@ -386,10 +387,10 @@ config BSP_BOARD_<BOARD>
 ### 14.3. 验证
 
 ```bash
-cd components/bsp
+cd <repo root>
 source ~/esp/esp-idf/export.sh
 tools/check.sh
-cd test_app
+cd components/bsp/test_app
 ./bsp.sh <app> <board> build
 ```
 
@@ -397,11 +398,10 @@ cd test_app
 
 ## 15. 关键约束
 
+API 语义,验证和文档规则见 `AGENTS.md` 和 `docs/bsp_design.md`;这里只列 board port 自己的约束:
+
 1. **Board port 只能导出 `bsp_*` public symbols**, 不暴露私有 driver 类型
 2. **Linker 选择**, 不运行时区分板型, 不做 board detect
-3. **`close(NULL)` 返回 `ESP_ERR_INVALID_ARG`**
-4. **`open()` 先置空 `*handle_out`**, 失败路径不保留旧值
-5. **外设间共享资源通过 `bsp_i2c_acquire/release` 和 `<board>_ioexp_acquire/release` 管理**, 不自己搞 refcount
-6. **pins.h 是 pin 分配的单一事实来源**, 代码不硬编码 GPIO 值
-7. **修改 board port 后应同步更新 truth table** (`docs/hw/boards/<board>_truth_table.md`)
-8. **tools/check.sh** 在每次修改后运行 (git diff whitespace + 旧 symbol 残留 + 依赖检查)
+3. **I2C bus 和 IOEXP 通过 `bsp_i2c_acquire/release` 和 `<board>_ioexp_acquire/release` 管理**;board port 内部确有第二处共享资源时 (如 AuraS3 display/backlight 共享 panel), 自己维护 refcount 并说明理由
+4. **pins.h 是 pin 分配的单一事实来源**, 代码不硬编码 GPIO 值
+5. **修改 board port 后应同步更新 truth table** (`docs/hw/boards/<board>_truth_table.md`)

@@ -123,6 +123,8 @@
 - AuraS3 native display contract 是 high-byte-first RGB565 byte stream;LVGL flush 必须执行 `lv_draw_sw_rgb565_swap()`.
 - CO5300 QSPI 局部刷新区域需要 2 像素对齐: invalid area 的 `x1/y1` 向下取偶数,`x2/y2` 向上扩到奇数;未对齐时 LVGL demo 动态区域会出现残留.
 - 该残留不是 AMOLED 物理残影,也不是 RGB565 endian 问题;它属于 CO5300/QSPI partial refresh 窗口约束.
+- LVGL render mode 为 PARTIAL;double buffer,lines=59,单 buffer 54988 bytes,优先 SRAM DMA.
+- TE wait 默认不启用,`GPIO13` 只作为硬件事实保留;实验记录见 `docs/hw/auras3-display-te.md`.
 
 ## 4. Brightness / Backlight
 

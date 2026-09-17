@@ -136,11 +136,10 @@ driver 与 board port 的分工:
 
 ### GNSS
 
-- GNSS API 第一阶段只表达串口原始字节流读取;NMEA 分帧和坐标解析不属于 BSP,由 app 完成.
+- GNSS API 只表达串口原始字节流读取;NMEA 分帧和坐标解析不属于 BSP,由 app 完成.
 - board port 直接实现 `bsp_gnss_*` 公共 API,不存在中间 core 层.
 - UART 选择,波特率默认值和电源/reset 控制由 board port 负责.
 - `bsp_gnss_read()` 在超时内读到数据就返回 `ESP_OK` 加实际长度 `len_out`;一个字节都没读到返回 `ESP_ERR_TIMEOUT`,`len_out == 0`.
-- raw NMEA 输出可以作为早期 test_app / shell 验证路径,稳定结构化定位 API 可后续再收敛.
 
 ### IMU
 
@@ -157,8 +156,7 @@ driver 与 board port 的分工:
 - board port 通过 `bsp_audio_pins_t` pin 配置结构和 `bsp_audio_pa_fn` PA callback 参数化公共逻辑.
 - playback 和 record 可以共享同一个 handle,但公共 API 不暴露 I2S bus,codec handle 或 slot layout.
 - read/write 返回实际读写长度,并由调用者传入 `timeout_ms`.
-- 当前稳定语义是 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
-- MIC3 playback reference,TDM,AEC 属于暂停的实验方向;未确认前不进入稳定 API.
+- 当前承诺的 playback / record 路径见 `docs/bsp/capabilities.md`;MIC3 playback reference,TDM,AEC 和 full-duplex 未确认真机行为前不进入稳定 API.
 
 ### Camera
 
@@ -176,7 +174,6 @@ driver 与 board port 的分工:
 - PMU API 第一阶段只表达只读状态和已映射事件: `open` / `close` / `get_status` / `get_events`.
 - AuraS3 board port 直接实现 `bsp_pmu_*` 公共 API;DoerS3 的 unsupported stub 由 `src/common/unsupported/pmu_unsupported.c` 提供.
 - public status 暴露 VBUS,电池,充电,电压和温度,不暴露 AXP2101 raw register 或 TCA9554 raw 电平.
-- 充电参数,DCDC/LDO rail control 和 software power-off 在板级验证前不进入稳定 public API.
 - raw IRQ / raw status 只能作为 bring-up 临时调试手段,结论确认后应删除或留在 internal-only debug,不能进入稳定 public API.
 
 ## 7. 错误语义
@@ -279,14 +276,16 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 
 ## 13. 文档分工
 
-- `README.md`: 仓库目的,构成,快速开始和文档索引.
-- `docs/bsp/README.md`: BSP 文档入口和导航.
-- `docs/bsp/capabilities.md`: 双板能力矩阵和 public API 一览.
-- `docs/bsp/porting-guide.md`: Board port 接入指南和每个文件的实现模板.
+- 根 `README.md`: 仓库目的,构成和快速开始;文档索引入口只写 `docs/bsp/README.md`.
+- `docs/bsp/README.md`: 全仓库文档和代码入口索引.
+- `docs/bsp/capabilities.md`: 能力承诺的唯一出处 — 双板能力矩阵,public API 一览,已承诺和不承诺边界.
+- `docs/bsp/status.md`: 进度面 — 已完成,未验证,暂停和下一步;不重复承诺边界.
 - `docs/bsp_design.md`: BSP 结构,分层职责和 API 语义.
-- `docs/bsp/status.md`: 当前状态,已完成项,缺口和下一步.
-- `docs/hw/boards/*_truth_table.md`: 硬件事实,pin,bus,芯片连接和待确认项.
+- `docs/bsp/porting-guide.md`: board port 接入指南和每个文件的实现模板.
+- `docs/hw/boards/*_truth_table.md`: 板级硬件事实,pin,bus,芯片连接,待确认项和该板的验证记录.
 - `docs/hw/auras3-display-te.md`: AuraS3 CO5300 TE 实验记录和当前取舍.
 - `docs/hw/auras3-pmu-key.md`: AuraS3 AXP2101 PMU,KEY2,SYS_OUT 和 AXP_IRQ 阶段性结论.
 - `components/shell/README.md`: 调试 shell 使用说明.
-- `AGENTS.md`: 给 Codex / coding agent 的协作规则.
+- `AGENTS.md`: 给 Codex / coding agent 的协作规则;架构禁项 (no runtime board detect, `boarddb`,通用 HAL) 以 §3 为准.
+
+同一事实只在一个文档里定义: 能力边界看 capabilities,进度看 status,设计规则看本文档和 `AGENTS.md`,硬件事实看 truth table. 其他文档需要时写链接,不复制内容.

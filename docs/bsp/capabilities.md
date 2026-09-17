@@ -2,7 +2,9 @@
 
 本文回答两个问题: 两块板分别支持什么,以及 app 可以用哪些 public API.
 
-- 真机验证时间线,缺口和下一步: `docs/bsp/status.md`
+本文是 BSP 能力承诺的唯一出处: 已承诺范围和明确不承诺范围都写在这里,其他文档只引用不重复.
+
+- 进度,已完成项和下一步: `docs/bsp/status.md`
 - 硬件事实 (pin,bus,地址,连接): `docs/hw/boards/<board>_truth_table.md`
 - API 语义和分层说明: `docs/bsp_design.md`
 
@@ -37,6 +39,7 @@
 - 两块板 byte order 不同: DoerS3 ST7789 为 little-endian RGB565,AuraS3 CO5300 为 high-byte-first.
 - app 不要假设统一 RGB565 语义;要画 UI 请用 `bsp_ui_*`.
 - AuraS3 QSPI 写入有 2 像素粒度限制,dirty area 由 board port 做 2 像素 rounder.
+- AuraS3 TE wait 当前默认不启用;若研究 TE,参考 `docs/hw/auras3-display-te.md`.
 
 ### UI 只有 LVGL 一种
 
@@ -48,6 +51,7 @@
 
 - 当前稳定语义: ES8311 speaker playback + ES7210 MIC1/MIC2 16-bit stereo record,两块板一致.
 - MIC3 playback reference,TDM,AEC 已暂停,不在 public API 内.
+- full-duplex (同时 playback + record) 尚未真机验证;`bsp_audio_desc_t.supports_full_duplex` 两板声明 true,验证前 app 不应依赖该路径.
 
 ### PMU 只承诺只读
 
@@ -57,7 +61,10 @@
 ### GNSS 只承诺 raw byte stream
 
 - `bsp_gnss_read()` 返回 UART 原始字节,不承诺结构化定位结果.
-- 当前没有 `bsp_rtc`;AuraS3 的 PCF85063 只是硬件事实,未进入 public API.
+
+### RTC 尚未进入 public API
+
+- 当前没有 `bsp_rtc`;AuraS3 的 PCF85063 只是硬件事实,未承诺任何 API.
 
 ## 3. public API 一览
 
@@ -87,7 +94,7 @@
 
 ## 4. 明确不做
 
-- 不做 runtime board detect,不做 `boarddb`,不做通用 `bsp_hal_spi/i2c/uart/i2s`.
+- 不做 runtime board detect,不做 `boarddb`,不做通用 `bsp_hal_*`;app 按 `present` 做运行态分支,不用 `#ifdef` 或 Kconfig 判断板子.
 - 不把 Kconfig 变成板级配置表: 只选 board 和 `CONFIG_BSP_ENABLE_CAMERA`,不在 Kconfig 里配 GPIO,屏幕尺寸或器件地址.
-- 不把未经真机确认的硬件事实或实验能力放进 public API.
-- 不为假想复用提前设计通用 HAL 或 driver framework.
+
+其余架构禁项和演进规则以 `AGENTS.md` §3 和 `docs/bsp_design.md` §12 为准.

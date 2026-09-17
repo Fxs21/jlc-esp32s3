@@ -1,122 +1,36 @@
 # BSP 当前状态
 
-本文档只记录 `components/bsp` 的当前状态,已验证内容,缺口和下一步.
+本文档只记录 `components/bsp` 的进度面: 已完成,未验证和下一步. 板级细节和证据在各板 truth table 中,能力承诺在 `docs/bsp/capabilities.md`.
 
-- 仓库目的和构成: `README.md`
-- 双板能力矩阵: `docs/bsp/capabilities.md`
-- 结构和 API 语义: `docs/bsp_design.md`
+- 能力承诺和 public API 边界: `docs/bsp/capabilities.md`
+- 设计规则和 API 语义: `docs/bsp_design.md`
+- 硬件事实: `docs/hw/boards/<board>_truth_table.md`
 
 ## 当前目标
 
 - BSP 服务于"同一个 app 稳定跑在 DoerS3 / AuraS3 上",不是独立产品;正式承载应用未定.
-- 保持一个公开 BSP 组件: `components/bsp`.
-- app 面向统一 BSP API 编写,不直接依赖 board port 或私有 driver.
-- DoerS3 和 AuraS3 都按同一组 public API 接入,board 差异由 board port 消化.
-- 复杂 BSP 能力通过 `components/bsp/test_app/<name>` 单独验证;UART 外设 (如 GNSS) 和简单 I2C 外设 (如 IMU) 以及 SDCard 通过 shell 测试.
-- camera test_app 因同时使用 camera + display + backlight,使用 `main/idf_component.yml` 声明 `espressif/esp32-camera` 依赖,并启用 `CONFIG_BSP_ENABLE_CAMERA=y`.
-- shell 实现在 `components/shell`,`components/bsp/test_app/shell` 作为调试入口包装它;`components/bsp` 不依赖 shell.
+- 当前优先保证 DoerS3 路径稳定可用;AuraS3 外设已接入并真机验证.
+- 只承诺真机验证过的能力,承诺边界集中在 `docs/bsp/capabilities.md`.
 
-## 当前结构
+## 已完成
 
-- `components/bsp/include/`: 公开 BSP API.
-- `components/bsp/src/common/`: 跨板复用组合逻辑,包括 UI lifecycle,I2C bus owner,LVGL buffer helper 和 unsupported stubs.
-- `components/bsp/src/boards/doers3/`: DoerS3 board port.
-- `components/bsp/src/boards/auras3/`: AuraS3 board port.
-- `components/bsp/src/drivers/`: BSP 私有 IC driver.
-- `components/bsp/test_app/`: BSP test_app 和 shell 调试 app.
-- `test_app` 当前包含: audio, camera, pmu, shell, ui. `imu`, `sdcard`, `gnss` 测试已合并到 shell 命令中;board info 由 shell `bsp info` 验证.
+- DoerS3: display,touch,backlight,sdcard,imu,audio,camera,gnss 全部真机通过;shell 和 UI 正常.
+- AuraS3: display,touch,backlight,sdcard,imu,audio,pmu 真机通过;shell 和 UI 正常.
+- camera test_app viewfinder (200 帧连续采集) 真机通过,约 10 FPS.
+- 测量数据和日志见 `docs/hw/boards/doers3_truth_table.md` 和 `docs/hw/boards/auras3_truth_table.md`.
 
-## CMake / board 选择
+## 未验证 / 暂停
 
-- `components/bsp/CMakeLists.txt` 按 `CONFIG_BSP_BOARD_DOERS3` / `CONFIG_BSP_BOARD_AURAS3` 直接 include 对应 `board.cmake`.
-- 每块板的 source manifest 写在 `components/bsp/src/boards/<board>/board.cmake`.
-- 不使用 `BSP_BOARD_HAS_*` capability auto CMake framework.
-- test_app 使用 `components/bsp/test_app/bsp.sh <app> <board> [idf action...]`.
-- 每个 test app 只有一个 `sdkconfig.defaults`,一个 app-local `sdkconfig`,一个 app-local `build/`.
-
-## Public API 当前能力
-
-- `bsp_board`: board id,name. 各外设可用性由各自 `*_get_desc()` 的 `present` 字段表达.
-- `bsp_display`: 低层 board-native async transfer API,只表达 native area write + wait.
-- `bsp_ui`: application UI entry,组合 LVGL display,touch,backlight.
-- `bsp_touch`: touch point 读取.
-- `bsp_backlight`: 0..100 percent 亮度语义.
-- `bsp_sdcard`: mount/unmount 和挂载信息.
-- `bsp_imu`: accel,gyro,temp 读取.
-- `bsp_audio`: ES8311 playback + ES7210 record 的最小句柄模型.
-- `bsp_gnss`: UART/NMEA byte stream.
-- `bsp_camera`: DoerS3 camera 单帧采集,AuraS3 返回 unsupported;test_app 通过 `bsp_display_write` 实现 viewfinder 循环 (200 帧连续 capture->byte-swap->显示),验证 camera+display+backlight 完整通路.
-- `bsp_pmu`: AuraS3 AXP2101 只读状态和事件,DoerS3 返回 unsupported.
-
-## Display / UI 当前语义
-
-- `bsp_display_open()` 固定 board-native contract,不承诺统一 host RGB565 byte order.
-- `bsp_display_write()` 只发送 native 数据,`data_size` 只做内存安全校验.
-- transfer done callback 只允许一个 owner.
-- public display API 不提供 `fill` 或 colorbar helper,shell 也不提供 display 命令.
-- `bsp_display_open()` 和 `bsp_ui_open()` 互斥;`bsp_ui_open()` 复用 `bsp_display_open()`.
-- `bsp_ui_process()` 直接返回 `lv_timer_handler()` 的 delay,不在 BSP 内硬限制 FPS.
-- UI test 使用 `lv_demo_widgets()` 作为真实压力测试,UI task priority 6,stack 16384,LVGL log off.
-
-## DoerS3 当前能力
-
-- Board: board id,name 可读取;各外设 desc.present 按真机状态返回.
-- Display: ST7789 已接入,当前 native display contract 为 little-endian RGB565,LVGL flush 不做 byte swap.
-- Touch: FT6336 已接入.
-- Backlight: LEDC backlight 已接入.
-- SD card: 1-bit SDMMC 挂载已接入.
-- IMU: QMI8658 已接入,可读取 accel,gyro,temp.
-- Audio: ES8311 speaker playback + ES7210 MIC1/MIC2 16-bit stereo record 已接入.
-- Camera: GC0308 QVGA RGB565,支持 `bsp_camera_capture` 单帧采集;test_app 实现连续 200 帧 capture->byte-swap->`bsp_display_write` viewfinder,验证 camera+display+backlight 完整通路. byte-swap 因 camera big-endian RGB565 vs display little-endian RGB565.
-- GNSS: MAX-M10S 使用 `UART1`,`38400 8N1`,可收到 NMEA ASCII.
-
-## AuraS3 当前能力
-
-- Board: board id,name 可读取;desc.present 为 true 的外设有 display,touch,backlight,imu,audio,gnss,sdcard,pmu,camera 为 false.
-- Display: CO5300 QSPI AMOLED 466x466,native contract 为 high-byte-first RGB565 stream,align 2x2,gap 6,0;init table 已按厂家序列收敛为 `FE 00` / `C4 80` / `3A 55` / `35 00` / `53 20` / `51 00` / `63 FF` / `2A` / `2B` / `11` delay 60ms / `29`.
-- UI: LVGL PARTIAL render,dirty area 2-pixel rounder,RGB565 swap enabled,TE wait disabled by default.
-- Backlight: CO5300 command `0x51`,public percent 0..100,默认 brightness 0,UI 首帧后再打开亮度.
-- Touch: CST9217 已接入,方向真机确认正常.
-- IMU: QMI8658 已接入,地址先探测 `0x6B`,fallback `0x6A`.
-- Audio: ES8311 playback + ES7210 MIC1/MIC2 record 已接入,PA 使用 direct GPIO 46.
-- GNSS: LC76GABMD UART BSP 已接入,`UART` pin 为 RX `GPIO18`,TX `GPIO17`,baud 当前实现为 38400;当前硬件未连接 GPS,暂不做真机结论.
-- SD card: 当前 BSP 使用 SDMMC 1-bit,`SDMMC_HOST`,CLK `GPIO2`,CMD `GPIO1`,D0 `GPIO3`;真机确认.
-- PMU: AXP2101 只读 public API 已接入,支持 VBUS/电池/充电/电压/温度/status/event 读取;KEY2 短按/长按,长按硬关机,KEY2 开机,电池插入/移除和充电开始已真机确认.
-- Camera: 用户确认无硬件,保持 `ESP_ERR_NOT_SUPPORTED`.
-
-## 已验证
-
-- `git diff --check` 和 `tools/check.sh` 已通过.
-- DoerS3 真机已确认: shell test 正常,UI test 正常.
-- DoerS3 真机已确认: ST7789 little-endian native contract + LVGL flush no swap 正常.
-- DoerS3 真机已确认: shell 与 camera test_app 均正常 (camera: 单帧->viewfinder 200 帧);IMU,SDCard,GNSS 通过 shell 命令验证.
-- DoerS3 真机已确认: camera test_app viewfinder ~10 FPS (QvGA RGB565 ~153KB/frame byte-swap + SPI DMA @80MHz).
-- AuraS3 真机已确认: shell `bsp info` 显示各外设 present 正常,`camera: no`.
-- AuraS3 真机已确认: shell `imu read` 可读取 accel/gyro/temp 数据.
-- AuraS3 真机已确认: shell `sd info` 可显示 SD card 类型,容量,挂载信息和 FS 统计.
-- AuraS3 真机已确认: audio test_app tone/rec 测试正常,ES8311/ES7210 open 正常.
-- AuraS3 真机已确认: UI 启动正常,LVGL buffer 为 double buffer,lines=59,单 buffer 54988 bytes,优先 SRAM DMA,TE wait off.
-- AuraS3 真机已确认: PMU test app 可构建运行,`KEY2` / `SYS_OUT` / `AXP_IRQ` / 电池插拔 / 充电开始 / `battery_percent` 收敛路径已完成阶段性验证.
-- AuraS3 GNSS 当前因硬件未连接,只确认未接模块时 shell `gnss read` 会返回超时.
-
-## 不承诺 / 暂停项
-
-- AuraS3 camera 不存在,不实现.
-- AuraS3 RTC `PCF85063` 仍只是硬件事实,当前没有 public BSP API.
-- AuraS3 PMU public API 只承诺只读状态和 mapped events,不承诺 software power-off,rail control 或充电参数配置.
-- GNSS public API 当前只承诺 raw byte stream,不承诺结构化定位 API.
-- Audio MIC3 playback reference,TDM,AEC 已暂停,当前只承诺 ES8311 playback 和 ES7210 MIC1/MIC2 stereo record.
-- `bsp_audio_desc_t.supports_full_duplex` 当前两板都声明 true,但 full-duplex (同时播放+录音) 路径尚未真机验证.
-- TE runtime 当前默认不启用;后续若研究 TE,应参考 `esp_lvgl_adapter` 的 `TE_SYNC` 路径.
-- Display shell `fill` / `colorbars` 不恢复,避免把 board-native byte order 细节暴露成调试 API.
+- AuraS3 GNSS 硬件未连接: 只确认未接模块时 shell `gnss read` 返回超时.
+- AuraS3 audio full-duplex (同时 playback + record) 未真机验证;`supports_full_duplex` 当前两板声明 true.
+- AuraS3 `audio rec-rms` 的 MIC1/MIC2 RMS 未补测.
+- TE wait 默认不启用,后续研究参考 `docs/hw/auras3-display-te.md`.
+- `docs/bsp_design.md` §6 的 Audio / PMU 两段复核暂停,待后续设计时一起处理,待改点见"下一步".
 
 ## 下一步
 
-1. 如后续继续 PMU,先做 internal-only software power-off 验证,确认 USB,仅电池,USB+电池三种场景和 `KEY2` 重新开机行为后,再决定是否增加 public `shutdown` API.
-2. 继续确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射,验证前不开放 DCDC/LDO control.
-3. ~~真机验证 AuraS3 SDMMC 1-bit SD card mount~~ 已通过.
-4. 如需要,补测 AuraS3 `audio rec-rms` 的 MIC1/MIC2 录音 RMS.
-5. 等 AuraS3 GNSS 硬件连接后,验证 `38400` baud,TX/RX 方向和 GPS reset 极性.
-6. 设计 `bsp_rtc` public API 前,先确认 `PCF85063` 的实际产品需求.
-7. ~~DoerS3 camera test_app 改造为 200 帧 viewfinder (capture->byte-swap->display)~~ 已通过.
-8. `docs/bsp_design.md` §6 的 Audio / PMU 两段复核暂停,待后续设计时一起处理. 已记录的待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.
+1. PMU: 先做 internal-only software power-off 验证 (USB,仅电池,USB+电池三种场景和 `KEY2` 重新开机行为),再决定是否增加 public `shutdown` API.
+2. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
+3. 等 AuraS3 GNSS 硬件连接后,验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.
+4. 设计 `bsp_rtc` public API 前,先确认 `PCF85063` 的实际产品需求.
+5. 复核 `docs/bsp_design.md` §6 的 Audio / PMU 两段. 已记录待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.

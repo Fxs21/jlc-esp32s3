@@ -25,7 +25,7 @@ BSP 是手段,不是目的. 目的有两个:
 | DoerS3 | 主验证板. display,touch,backlight,sdcard,imu,audio,camera,gnss 全部真机通过 |
 | AuraS3 | 外设已接入并真机验证. 无 camera;GNSS 硬件未连接,待验证 |
 
-逐项能力见 `docs/bsp/capabilities.md`;真机结论和时间线见 `docs/bsp/status.md`.
+逐项能力见 `docs/bsp/capabilities.md`;进度见 `docs/bsp/status.md`,真机结论和测量数据见各板 truth table.
 
 验证入口是 `components/bsp/test_app/*`: `audio`,`camera`,`pmu`,`shell`,`ui`.
 
@@ -82,15 +82,4 @@ CHECK_BUILD=1 tools/check.sh  # 追加 idf.py build
 
 ## 7. 文档索引
 
-| 文档 | 内容 |
-|---|---|
-| `docs/bsp/capabilities.md` | 双板能力矩阵和 public API 一览 |
-| `docs/bsp/status.md` | 当前进度,已验证项,暂停项和下一步 |
-| `docs/bsp_design.md` | BSP 结构,分层职责和 API 语义 |
-| `docs/bsp/porting-guide.md` | 新增 board port 的接入指南 |
-| `docs/hw/boards/doers3_truth_table.md` | DoerS3 硬件事实 |
-| `docs/hw/boards/auras3_truth_table.md` | AuraS3 硬件事实 |
-| `docs/hw/auras3-display-te.md` | AuraS3 TE 防撕裂实验记录 |
-| `docs/hw/auras3-pmu-key.md` | AuraS3 PMU / KEY2 阶段性结论 |
-| `components/shell/README.md` | 调试 shell 使用说明 |
-| `AGENTS.md` | coding agent 协作规则 |
+全部文档和代码入口索引见 `docs/bsp/README.md`.
