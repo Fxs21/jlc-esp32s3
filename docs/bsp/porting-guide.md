@@ -284,7 +284,7 @@ struct bsp_audio_s {
 - open: `uart_param_config() + uart_set_pin() + uart_driver_install()`
 - close: `uart_driver_delete()`
 - read: `uart_read_bytes()`
-- read 返回 `ESP_OK` 加真实长度;一字节都没读到返回 `ESP_ERR_TIMEOUT` (见 `docs/bsp_design.md` §2)
+- read 返回 `ESP_OK` 加真实长度;一字节都没读到返回 `ESP_ERR_TIMEOUT` (见 `docs/bsp/design.md` §2)
 - 如果 GNSS 需要通过 IOEXP 释放 reset (AuraS3), 在 open 中 acquire IOEXP 并释放 reset, close 中 release
 
 参考: `doers3/gnss.c` (纯 UART), `auras3/gnss.c` (+ IOEXP reset).
@@ -386,11 +386,11 @@ config BSP_BOARD_<BOARD>
 
 ### 14.3. 验证
 
-board port 完成后,先跑 `tools/check.sh`,再按 `docs/bsp/README.md` 的验证入口对每个 app 和每块板构建一遍;所有 test_app 应该能成功构建.
+board port 完成后,先跑 `tools/check.sh`,再按 `docs/README.md` 的验证入口对每个 app 和每块板构建一遍;所有 test_app 应该能成功构建.
 
 ## 15. 关键约束
 
-API 语义,验证和文档规则见 `AGENTS.md` 和 `docs/bsp_design.md`;这里只列 board port 自己的约束:
+API 语义,验证和文档规则见 `AGENTS.md` 和 `docs/bsp/design.md`;这里只列 board port 自己的约束:
 
 1. **Board port 只能导出 `bsp_*` public symbols**, 不暴露私有 driver 类型
 2. **Linker 选择**, 不运行时区分板型, 不做 board detect

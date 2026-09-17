@@ -48,7 +48,7 @@ docs/                 # 设计,状态,接入指南和硬件事实
 - 不做 runtime board detect,不做 board database,不做通用 bus HAL.
 - 板级差异只存在于 `components/bsp/src/boards/<board>/`.
 
-完整设计说明见 `docs/bsp_design.md`.
+完整设计说明见 `docs/bsp/design.md`.
 
 ## 5. 快速开始
 
@@ -82,4 +82,4 @@ CHECK_BUILD=1 tools/check.sh  # 追加 idf.py build
 
 ## 7. 文档索引
 
-全部文档和代码入口索引见 `docs/bsp/README.md`.
+全部文档,代码入口和验证入口索引见 `docs/README.md`.

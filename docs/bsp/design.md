@@ -243,7 +243,7 @@ CONFIG_BSP_ENABLE_CAMERA
 - 需要额外 managed component 的 app 在自己的 `main/idf_component.yml` 声明依赖,例如 camera app 的 `espressif/esp32-camera`.
 - 删除或暂停的实验能力不保留长期 test_app 噪声.
 
-验证入口命令见 `docs/bsp/README.md`.
+验证入口命令见 `docs/README.md`.
 
 ## 11. Shell 调试边界
 
@@ -268,19 +268,6 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 
 ## 13. 文档分工
 
-- 根 `README.md`: 仓库目的,构成和快速开始;文档索引入口只写 `docs/bsp/README.md`.
-- `docs/bsp/README.md`: 全仓库文档和代码入口索引.
-- `docs/bsp/capabilities.md`: 能力承诺的唯一出处 — 双板能力矩阵,public API 一览,已承诺和不承诺边界.
-- `docs/bsp/status.md`: 进度面 — 已完成,未验证,暂停和下一步;不重复承诺边界.
-- `docs/bsp_design.md`: BSP 结构,分层职责和 API 语义.
-- `docs/bsp/porting-guide.md`: board port 接入指南和每个文件的实现模板.
-- `docs/hw/boards/<board>/truth_table.md`: 板级硬件事实,pin,bus,芯片连接,待确认项和该板的验证记录.
-- `docs/hw/boards/<board>/README.md`: 板级资料入口,官方来源链接和厂商资料清单.
-- `docs/hw/boards/<board>/schematic/`: 板厂原理图和分页图.
-- `docs/hw/specs/`: 器件 datasheet 和手册,索引在 `docs/hw/specs/README.md`.
-- `docs/hw/auras3-display-te.md`: AuraS3 CO5300 TE 实验记录和当前取舍.
-- `docs/hw/auras3-pmu-key.md`: AuraS3 AXP2101 PMU,KEY2,SYS_OUT 和 AXP_IRQ 阶段性结论.
-- `components/shell/README.md`: 调试 shell 使用说明.
-- `AGENTS.md`: 给 Codex / coding agent 的协作规则;架构禁项 (no runtime board detect, `boarddb`,通用 HAL) 以 §3 为准.
+各文档的角色分工和唯一索引见 `docs/README.md`. 文档索引只在该文件维护,新增,移动或删除文档时同步更新它,本文件不再重复列举.
 
 同一事实只在一个文档里定义: 能力边界看 capabilities,进度看 status,设计规则看本文档和 `AGENTS.md`,硬件事实看 truth table. 其他文档需要时写链接,不复制内容.

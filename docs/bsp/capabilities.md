@@ -6,7 +6,7 @@
 
 - 进度,已完成项和下一步: `docs/bsp/status.md`
 - 硬件事实 (pin,bus,地址,连接): `docs/hw/boards/<board>/truth_table.md`
-- API 语义和分层说明: `docs/bsp_design.md`
+- API 语义和分层说明: `docs/bsp/design.md`
 
 ## 1. 双板能力对照
 
@@ -97,4 +97,4 @@
 - 不做 runtime board detect,不做 `boarddb`,不做通用 `bsp_hal_*`;app 按 `present` 做运行态分支,不用 `#ifdef` 或 Kconfig 判断板子.
 - 不把 Kconfig 变成板级配置表: 只选 board 和 `CONFIG_BSP_ENABLE_CAMERA`,不在 Kconfig 里配 GPIO,屏幕尺寸或器件地址.
 
-其余架构禁项和演进规则以 `AGENTS.md` §3 和 `docs/bsp_design.md` §12 为准.
+其余架构禁项和演进规则以 `AGENTS.md` §3 和 `docs/bsp/design.md` §12 为准.
