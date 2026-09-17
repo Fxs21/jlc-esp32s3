@@ -28,7 +28,6 @@
 static bsp_backlight_handle_t s_backlight;
 static bsp_sdcard_handle_t s_sd;
 
-
 static const char *yes_no(bool value)
 {
     return value ? "yes" : "no";
@@ -59,7 +58,6 @@ static int print_ret(const char *op, esp_err_t ret)
     printf("%s failed: %s\n", op, esp_err_to_name(ret));
     return 1;
 }
-
 
 static const char *sd_type_name(bsp_sdcard_type_t type)
 {
@@ -241,10 +239,6 @@ static int cmd_touch(int argc, char **argv)
     }
     return 0;
 }
-
-/* ---------------------------------------------------------------------------
- * NMEA sentence helpers
- * -------------------------------------------------------------------------*/
 
 typedef struct {
     char line[NMEA_LINE_MAX];
@@ -458,10 +452,6 @@ static void nmea_state_feed(nmea_state_t *s, const uint8_t *buf, size_t len)
         }
     }
 }
-
-/* ---------------------------------------------------------------------------
- * gnss command: read [count] [timeout_ms]
- * -------------------------------------------------------------------------*/
 
 static int cmd_gnss(int argc, char **argv)
 {
@@ -710,7 +700,6 @@ static int cmd_sd(int argc, char **argv)
     }
     return 0;
 }
-
 
 esp_err_t shell_register_bsp_commands(void)
 {

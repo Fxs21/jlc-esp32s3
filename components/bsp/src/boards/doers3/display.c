@@ -180,8 +180,6 @@ static esp_err_t panel_deinit(struct bsp_display_s *handle)
     return first_err;
 }
 
-// ---------- public display API ----------
-
 esp_err_t bsp_display_open(bsp_display_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
@@ -256,8 +254,6 @@ esp_err_t bsp_display_write(bsp_display_handle_t handle,
     ESP_RETURN_ON_FALSE(handle->panel != NULL, ESP_ERR_INVALID_STATE, TAG, "panel is null");
     return esp_lcd_panel_draw_bitmap(handle->panel, x, y, x + width, y + height, data);
 }
-
-// ---------- internal LVGL port API ----------
 
 esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t **display_out)
 {

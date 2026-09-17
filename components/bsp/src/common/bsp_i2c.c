@@ -13,20 +13,12 @@
 
 #define TAG "bsp_i2c"
 
-// ---------------------------------------------------------------------------
-// Singleton bus with ref-count
-// ---------------------------------------------------------------------------
-
 static i2c_master_bus_handle_t s_bus;
 static uint32_t s_ref_count;
 static StaticSemaphore_t s_lock_buf;
 static SemaphoreHandle_t s_lock;
 static portMUX_TYPE s_lock_mux = portMUX_INITIALIZER_UNLOCKED;
 static bool s_prepared;
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
 
 static esp_err_t lock_take(void)
 {
@@ -83,10 +75,6 @@ static esp_err_t prepare_lines(const bsp_i2c_bus_config_t *cfg)
     }
     return ESP_OK;
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 esp_err_t bsp_i2c_acquire(i2c_master_bus_handle_t *bus_out)
 {

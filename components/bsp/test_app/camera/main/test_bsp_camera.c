@@ -48,7 +48,6 @@ void app_main(void)
     bool camera_open = false;
     bool frame_active = false;
 
-    // --- open backlight ---
     ret = bsp_backlight_open(&bl);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "TEST FAIL name=camera+display step=backlight_open err=%s", esp_err_to_name(ret));
@@ -57,7 +56,6 @@ void app_main(void)
     backlight_open = true;
     bsp_backlight_set_percent(bl, 50);
 
-    // --- open display ---
     ret = bsp_display_open(&disp);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "TEST FAIL name=camera+display step=display_open err=%s", esp_err_to_name(ret));
@@ -67,7 +65,6 @@ void app_main(void)
     const bsp_display_info_t *disp_info = bsp_display_get_info(disp);
     ESP_LOGI(TAG, "display: %ux%u bpp=%u", disp_info->width, disp_info->height, disp_info->bits_per_pixel);
 
-    // --- open camera ---
     ret = bsp_camera_open(&cam);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "TEST FAIL name=camera+display step=camera_open err=%s", esp_err_to_name(ret));
@@ -92,7 +89,6 @@ void app_main(void)
     }
     bsp_display_set_done_cb(disp, transfer_done_cb, sem);
 
-    // --- viewfinder loop ---
     uint32_t frame_count = 0;
 
     while (frame_count < MAX_FRAMES) {

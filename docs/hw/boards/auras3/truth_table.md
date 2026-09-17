@@ -20,6 +20,8 @@
 | MCU | ESP32-S3 | 官方资料 |
 | Display | CO5300 AMOLED | 官方 ESP-IDF BSP include `esp_lcd_co5300.h` |
 | Display 分辨率 | `466 x 466` | 官方 BSP `BSP_LCD_H_RES` / `BSP_LCD_V_RES` |
+| Display 形状 | 圆形,直径 `466` | 用户确认;当前 BSP 不做圆裁切(驱动只有 2x2 dirty 对齐的 `rounder_event_cb`),安全区必须由 UI 层自己保证 |
+| Display 可用区 | 内接正方形约 `330 x 330`(居中),四周各约 `68` px | 由圆形几何推出;各高度可用宽度:y=0 为 `0` px,y=25 约 `210` px,y=106 约 `391` px,中心行 `466` px,y=400 约 `325` px |
 | Display 接口 | QSPI | 官方 BSP `CO5300_PANEL_BUS_QSPI_CONFIG` |
 | Touch | CST9217 | 官方 BSP include `esp_lcd_touch_cst9217.h` |
 | IMU | QMI8658 | 真机 `i2c_scan` 和 BSP test 已确认 |
