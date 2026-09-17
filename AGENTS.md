@@ -66,6 +66,6 @@
 - DoerS3 硬件事实以 `docs/hw/boards/doers3_truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改.
 - AuraS3 硬件事实以 `docs/hw/boards/auras3_truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改. truth table 中标注待确认的项,当前允许对应 board port 返回 `ESP_ERR_NOT_SUPPORTED` 或保留 stub.
 - Audio 在两块板都只承诺 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
-- MIC3 playback reference,TDM,AEC 当前暂停,不进入稳定 BSP API.
+- MIC3 playback reference,TDM,AEC 当前暂停,不进入稳定 BSP API;full-duplex 未真机验证,验证前 app 不应依赖 `bsp_audio_desc_t.supports_full_duplex`.
 - shell 不是 BSP 的一部分;`components/bsp` 不应依赖 shell.
 - 修改 board port 代码后,应同步检查对应 truth table (`docs/hw/boards/<board>_truth_table.md`) 是否需要更新.例如 pin 分配变化,bus 类型切换,I2C 地址修正,新增或删除外设等都应反映到 truth table 中.

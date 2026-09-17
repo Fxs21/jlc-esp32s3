@@ -16,7 +16,7 @@
 
 - DoerS3: display,touch,backlight,sdcard,imu,audio,camera,gnss 全部真机通过;shell 和 UI 正常.
 - AuraS3: display,touch,backlight,sdcard,imu,audio,pmu 真机通过;shell 和 UI 正常.
-- camera test_app viewfinder (200 帧连续采集) 真机通过,约 10 FPS.
+- camera test_app viewfinder 通路真机通过;连续采集参数和实测帧率见 `docs/hw/boards/doers3_truth_table.md`.
 - 测量数据和日志见 `docs/hw/boards/doers3_truth_table.md` 和 `docs/hw/boards/auras3_truth_table.md`.
 
 ## 未验证 / 暂停

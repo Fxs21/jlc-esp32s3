@@ -9,8 +9,8 @@
 | 原理图逐页核对 | 部分确认 | `tmp/AuraS3/ESP32-S3-Touch-AMOLED-1.75/Schematic/ESP32-S3-Touch-AMOLED-1.75-schematic.pdf` |
 | 官方 ESP-IDF BSP 对照 | 已整理 | `examples/ESP-IDF-v5.5/03_esp-brookesia/components/esp32_s3_touch_amoled_1_75` |
 | Arduino pin 表对照 | 已整理 | `examples/Arduino-v3.3.5/libraries/Mylibrary/pin_config.h` |
-| BSP 当前接入范围 | 已接入 | `display`,`touch`,`backlight`,`imu`,`audio`,`gnss`,`sdcard`,`pmu`;`camera` 无硬件 |
-| 真机验证 | 部分通过 | `board`,`imu`,`sdcard`,`audio tone`,`ui`,`pmu` 已确认;GNSS 硬件未连接,暂不测 |
+
+模块接入范围和逐模块验证状态见 §13.
 
 ## 1. 板卡身份
 
@@ -300,15 +300,3 @@ temp      C: 33.71
 | `bsp_camera` | unsupported | 用户确认无 camera |
 | RTC | 暂缓 | 当前无 public BSP API |
 | TCA9554PWR | 内部 helper 已接入 | 当前用于 GNSS reset 和 input default setup |
-
-## 14. 建议审核清单
-
-- 主 I2C 已确认: `GPIO15(SDA)` / `GPIO14(SCL)`.
-- I2C scan 已确认: ES8311 `0x18`,TCA9554PWR `0x20`,AXP2101 `0x34`,ES7210 `0x40`,PCF85063 `0x51`,CST9217 `0x5A`,QMI8658 `0x6B`.
-- TCA9554PWR P0..P7 当前记录为: P0/P1/P2 NC,P3 RTC_INT,P4 SYS_OUT,P5 AXP_IRQ,P6 QMI_INT,P7 GPS_RST.
-- I2S MCLK 已确认: `GPIO42`,忽略 `I2S_MCK_IO=16` 残留定义.
-- SD 当前 BSP 采用 SDMMC 1-bit(CLK=GPIO2,CMD=GPIO1,D0=GPIO3);真机验证已通过.
-- GNSS 已确认: LC76GABMD + UART,ESP32 RX `GPIO18` / TX `GPIO17`;硬件未连接,baud `38400` 和 reset 极性仍待真机确认.
-- Camera 已确认不存在.
-- CO5300 brightness 通过 panel command `0x51` 控制,无独立 BL GPIO.
-- PMU 已确认只读状态和 mapped events 可用;software power-off,rail control 和充电参数配置仍需后续专项验证.

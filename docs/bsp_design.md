@@ -26,7 +26,7 @@ components/
 - `src/common/` 只放真正跨板复用的组合逻辑,不放某块板专用的临时实现.
 - `src/common/unsupported/` 放能力缺席时的共享默认实现 (`desc.present = false`,API 返回 `ESP_ERR_NOT_SUPPORTED`),每个可能缺席的公开能力至多一份;不允许"既无实现又无兜底"的能力留到链接期.
 - `test_app/` 用公开 API 验证 BSP 能力.
-- `components/shell` 可以调用 BSP public API 提供调试命令,但 `components/bsp` 不能依赖 shell.
+- `components/shell/` 非 BSP 的独立调试组件,不属于 BSP 交付面.
 
 ## 2. 公共 API 语义约定
 
@@ -230,12 +230,10 @@ CONFIG_BSP_ENABLE_CAMERA
 
 ## 10. Test App 规则
 
-复杂能力 (多外设组合,需要人工观察) 放在 `components/bsp/test_app/<name>` 下单独验证;简单 I2C/UART 外设和通用调试能力合并到 shell 命令验证.
+验证范围划分 (哪些能力进 test_app,哪些合并到 shell) 和 test_app 的依赖边界见 `AGENTS.md` §6;本节只列工程机制.
 
 规则:
 
-- test_app 只依赖公开 `bsp` API.
-- test_app 不 include board port 或 private driver 头文件.
 - 构建入口统一使用 `components/bsp/test_app/bsp.sh`.
 - 每个 app 只维护一个 `sdkconfig.defaults`,一个真实 `sdkconfig`,一个 `build/`.
 - board 选择由 wrapper 写入 app-local `sdkconfig`.
@@ -245,13 +243,7 @@ CONFIG_BSP_ENABLE_CAMERA
 - 需要额外 managed component 的 app 在自己的 `main/idf_component.yml` 声明依赖,例如 camera app 的 `espressif/esp32-camera`.
 - 删除或暂停的实验能力不保留长期 test_app 噪声.
 
-常用命令:
-
-```bash
-cd components/bsp/test_app
-./bsp.sh shell aura build flash monitor
-./bsp.sh ui doer build flash monitor
-```
+验证入口命令见 `docs/bsp/README.md`.
 
 ## 11. Shell 调试边界
 
@@ -270,7 +262,7 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 - 设计期允许破坏性调整 API,优先把接口形态做对.
 - 稳定后新增能力优先 additive,避免无意义 churn.
 - 先实现真实需要的最小能力,再按实际需求扩展.
-- 未确认硬件事实先写入 truth table 的待确认部分,不进入稳定 API.
+- 未确认的硬件事实不进入稳定 API;记录位置和同步规则见 `AGENTS.md` §6 和 §7.
 - 实验能力优先放在内部实现或临时 test_app 中验证,确认后再设计公共 API.
 - 如果抽象让代码更难解释,调试或验证,应退回更直接的实现.
 

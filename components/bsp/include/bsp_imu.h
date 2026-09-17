@@ -23,6 +23,7 @@ typedef struct {
     float gyro_rads_y;
     float gyro_rads_z;
     float temperature_c;
+    // Monotonic sensor sample counter; not a time unit, rate follows the configured ODR.
     uint32_t timestamp_ticks;
 } bsp_imu_data_t;
 
