@@ -7,8 +7,11 @@ set(BSP_BOARD_SRCS
     "src/boards/auras3/gnss.c"
     "src/boards/auras3/sdcard.c"
     "src/boards/auras3/pmu.c"
-    "src/common/unsupported/camera_unsupported.c"
     "src/boards/auras3/internal/auras3_ioexp.c"
+)
+
+set(BSP_BOARD_UNSUPPORTED
+    "camera"
 )
 
 set(BSP_BOARD_DRIVERS

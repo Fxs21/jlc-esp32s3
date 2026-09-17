@@ -69,11 +69,11 @@ typedef struct {
 
 const bsp_pmu_desc_t *bsp_pmu_get_desc(void);
 
-// On failure, *out_pmu is set to NULL after out_pmu is validated.
-esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *out_pmu);
+// On failure, *pmu_out is set to NULL after pmu_out is validated.
+esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *pmu_out);
 esp_err_t bsp_pmu_close(bsp_pmu_handle_t pmu);
-esp_err_t bsp_pmu_get_status(bsp_pmu_handle_t pmu, bsp_pmu_status_t *out_status);
-esp_err_t bsp_pmu_get_events(bsp_pmu_handle_t pmu, bsp_pmu_event_t *out_events, bool clear);
+esp_err_t bsp_pmu_get_status(bsp_pmu_handle_t pmu, bsp_pmu_status_t *status_out);
+esp_err_t bsp_pmu_get_events(bsp_pmu_handle_t pmu, bsp_pmu_event_t *events_out, bool clear);
 
 #ifdef __cplusplus
 }

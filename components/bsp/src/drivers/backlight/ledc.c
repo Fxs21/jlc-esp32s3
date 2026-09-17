@@ -22,10 +22,10 @@ static esp_err_t off(void)
     return ledc_stop(BL_LEDC_MODE, BL_LEDC_CHANNEL, 0);
 }
 
-esp_err_t backlight_ledc_open(const backlight_ledc_config_t *cfg, backlight_ledc_handle_t *out_handle)
+esp_err_t backlight_ledc_open(const backlight_ledc_config_t *cfg, backlight_ledc_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "cfg is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
 
     struct backlight_ledc_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -68,7 +68,7 @@ esp_err_t backlight_ledc_open(const backlight_ledc_config_t *cfg, backlight_ledc
         return ret;
     }
 
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 }
 

@@ -33,8 +33,8 @@ typedef struct {
 bsp_audio_desc_t const *bsp_audio_get_desc(void);
 bsp_audio_config_t bsp_audio_default_config(void);
 
-// On failure, *out_handle is set to NULL after out_handle is validated.
-esp_err_t bsp_audio_open(const bsp_audio_config_t *config, bsp_audio_handle_t *out_handle);
+// On failure, *handle_out is set to NULL after handle_out is validated.
+esp_err_t bsp_audio_open(const bsp_audio_config_t *config, bsp_audio_handle_t *handle_out);
 esp_err_t bsp_audio_close(bsp_audio_handle_t handle);
 
 esp_err_t bsp_audio_play_start(bsp_audio_handle_t handle);
@@ -44,7 +44,7 @@ esp_err_t bsp_audio_play_set_volume(bsp_audio_handle_t handle, int volume);
 esp_err_t bsp_audio_play_write(bsp_audio_handle_t handle,
                                const void *data,
                                size_t len,
-                               size_t *out_written,
+                               size_t *written_out,
                                uint32_t timeout_ms);
 
 esp_err_t bsp_audio_record_start(bsp_audio_handle_t handle);
@@ -54,7 +54,7 @@ esp_err_t bsp_audio_record_set_gain(bsp_audio_handle_t handle, float gain_db);
 esp_err_t bsp_audio_record_read(bsp_audio_handle_t handle,
                                 void *data,
                                 size_t len,
-                                size_t *out_read,
+                                size_t *read_out,
                                 uint32_t timeout_ms);
 
 #ifdef __cplusplus

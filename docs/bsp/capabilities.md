@@ -4,7 +4,7 @@
 
 - 真机验证时间线,缺口和下一步: `docs/bsp/status.md`
 - 硬件事实 (pin,bus,地址,连接): `docs/hw/boards/<board>_truth_table.md`
-- API 语义和设计边界: `docs/bsp_design.md`
+- API 语义和分层说明: `docs/bsp_design.md`
 
 ## 1. 双板能力对照
 
@@ -81,7 +81,7 @@
 统一约定:
 
 - 生命周期用 `open` / `close`;运行态用 `read` / `write` / `start` / `stop` / `capture` / `mount`.
-- `open()` 失败时必须把 `*out_handle` 置为 `NULL`;`close(NULL)` 返回 `ESP_ERR_INVALID_ARG`.
+- `open()` 失败时必须把 `*handle_out` 置为 `NULL`;`close(NULL)` 返回 `ESP_ERR_INVALID_ARG`.
 - 带超时的 IO 由调用者传 `timeout_ms`,并返回实际长度.
 - public API 不承诺线程安全: 同一个 handle 由一个 owner task 串行使用,跨 task 共享由 app 自己加锁.
 

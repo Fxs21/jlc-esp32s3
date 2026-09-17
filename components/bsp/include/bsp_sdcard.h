@@ -44,16 +44,16 @@ typedef struct {
 
 const bsp_sdcard_desc_t *bsp_sdcard_get_desc(void);
 
-// On failure, *out_handle is set to NULL after out_handle is validated.
-esp_err_t bsp_sdcard_open(bsp_sdcard_handle_t *out_handle);
+// On failure, *handle_out is set to NULL after handle_out is validated.
+esp_err_t bsp_sdcard_open(bsp_sdcard_handle_t *handle_out);
 esp_err_t bsp_sdcard_close(bsp_sdcard_handle_t handle);
 
 esp_err_t bsp_sdcard_mount(bsp_sdcard_handle_t handle, const char *mount_point);
 esp_err_t bsp_sdcard_unmount(bsp_sdcard_handle_t handle);
-esp_err_t bsp_sdcard_get_mount_point(bsp_sdcard_handle_t handle, const char **out_mount_point);
+esp_err_t bsp_sdcard_get_mount_point(bsp_sdcard_handle_t handle, const char **mount_point_out);
 
-esp_err_t bsp_sdcard_get_info(bsp_sdcard_handle_t handle, bsp_sdcard_info_t *out_info);
-esp_err_t bsp_sdcard_get_fs_info(bsp_sdcard_handle_t handle, bsp_sdcard_fs_info_t *out_info);
+esp_err_t bsp_sdcard_get_info(bsp_sdcard_handle_t handle, bsp_sdcard_info_t *info_out);
+esp_err_t bsp_sdcard_get_fs_info(bsp_sdcard_handle_t handle, bsp_sdcard_fs_info_t *info_out);
 
 #ifdef __cplusplus
 }

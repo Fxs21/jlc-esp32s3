@@ -1,140 +1,90 @@
 # BSP 设计文档
 
-本文档描述 `components/bsp` 的长期设计边界.当前进度,已完成项和下一步记录在 `docs/bsp/status.md`.
+本文档描述 `components/bsp` 的结构,分层职责和 API 语义约定.协作和架构规则见 `AGENTS.md`;当前进度,已完成项和下一步记录在 `docs/bsp/status.md`.
 
-## 1. 目标
-
-- 为 DoerS3 和 AuraS3 提供一组统一 BSP API.
-- app 只依赖公开 BSP API,不直接依赖具体开发板的 pin,bus,chip driver 或 power sequence.
-- board port 负责消化硬件差异,让同一个 app 可以在不同 board 上使用稳定语义.
-- BSP API 保持简单,直接,可解释,优先解决真实需求,不提前抽象.
-- BSP 内部代码在不增加复杂度的前提下保持适度复用.
-
-## 2. 非目标
-
-- 不做运行时 board detect.
-- 不做大 `boarddb`.
-- 不做通用 `bsp_hal_spi/i2c/uart/i2s`;只允许少量 board-owned 诊断 API,例如扫描 BSP 默认 I2C bus.
-- 不做运行时 backend registry.
-- 不把 BSP 做成应用框架.
-- 不承诺暴露每个芯片的完整能力.
-- 不把未经确认的实验能力放入稳定公共 API.
-
-## 3. 目录结构
+## 1. 目录结构
 
 ```text
 components/
   bsp/
-    include/              # app 可见 API
-    src/common/           # 真正跨板复用的组合逻辑
-    src/boards/doers3/    # DoerS3 board port
-    src/boards/auras3/    # AuraS3 board port
-    src/drivers/          # BSP 私有 IC driver
-    test_app/             # BSP 能力验证工程和 shell 调试 app
-  shell/                  # 非 BSP,独立调试组件
+    include/                # app 可见 API
+    src/common/             # 真正跨板复用的组合逻辑
+    src/common/unsupported/ # 能力缺席时的共享默认实现
+    src/boards/doers3/      # DoerS3 board port
+    src/boards/auras3/      # AuraS3 board port
+    src/drivers/            # BSP 私有 IC driver
+    test_app/               # BSP 能力验证工程和 shell 调试 app
+  shell/                    # 非 BSP,独立调试组件
 ```
 
 基本规则:
 
 - `include/` 只放公开 API.
 - `src/boards/<board>/` 放板级实现,pin mapping,bus 装配和 power/reset 时序.
-- `src/boards/<board>/board.cmake` 直接列出该 board 的 source manifest.
+- `src/boards/<board>/board.cmake` 声明该 board 实现的能力及其 source manifest;未声明的能力由 CMake 兜底到 `src/common/unsupported/`.
 - `src/drivers/` 放可复用但不公开的小芯片 driver.
-- `src/common/` 只放真正跨板复用的组合逻辑,不放某块板子的临时 stub.
+- `src/common/` 只放真正跨板复用的组合逻辑,不放某块板专用的临时实现.
+- `src/common/unsupported/` 放能力缺席时的共享默认实现 (`desc.present = false`,API 返回 `ESP_ERR_NOT_SUPPORTED`),每个可能缺席的公开能力至多一份;不允许"既无实现又无兜底"的能力留到链接期.
 - `test_app/` 用公开 API 验证 BSP 能力.
 - `components/shell` 可以调用 BSP public API 提供调试命令,但 `components/bsp` 不能依赖 shell.
 
-## 4. 公共 API 边界
+## 2. 公共 API 语义约定
 
-核心 BSP API 面向 app 稳定使用,不直接暴露底层组件或芯片 driver 类型.
+公共 API 的通用规则见 `AGENTS.md` §3;本节只记录 API 的具体语义约定.
 
-当前规则:
-
-- 核心 API 只暴露 `esp_err_t`,基础 C 类型,BSP 自有 `struct` / `enum`.
-- 不在核心 API 中直接暴露 ESP-IDF 或第三方 driver 类型.
 - 当前 UI 只支持 LVGL,不设计多 UI backend;允许 `bsp_ui_*` 暴露 LVGL 类型,但函数名必须明确带 `lvgl`.
 - I2C bus 是另一处具名例外: `bsp_i2c_acquire()` 返回原生 `i2c_master_bus_handle_t`,公开它的理由是防止 app 在同一组 pin 上另开第二条 bus. bus 的 port,pin 和参数属于 board truth,留在 `src/common/bsp_i2c_internal.h`.
-- 外设生命周期优先使用 `open/close`.
-- `open()` 在验证输出指针后必须先将 `*out_handle` / `*out_xxx` 置为 `NULL`;失败返回时调用者不得保留旧 handle.
-- `close(NULL)` 是调用参数错误,统一返回 `ESP_ERR_INVALID_ARG`.
+- `open()` 在验证输出指针后必须先将 `*handle_out` / `*xxx_out` 置为 `NULL`;失败返回时调用者不得保留旧 handle;同一外设重复 `open()` 返回 `ESP_ERR_INVALID_STATE`,不隐式返回第二个 handle.
+- `open()` 失败必须回滚到未打开状态.
+- `close(NULL)` 是调用参数错误,统一返回 `ESP_ERR_INVALID_ARG`;`handle` 在 `close()` 后立即失效,不承诺重复 `close()` 幂等.
+- `start` / `stop` 是幂等运行态操作,重复调用返回 `ESP_OK`;生命周期严格性只针对 `open` / `close`.
 - 有描述信息的外设可以提供 `bsp_xxx_get_desc()` 或 `bsp_xxx_get_info()`.
 - 有默认配置的外设可以提供 `bsp_xxx_default_config()`.
-- IO 操作应返回实际读写长度,并由调用者传入 `timeout_ms`.
-- BSP public API 默认不承诺多任务并发安全;同一个 handle 应由一个 owner/task 串行使用.
-- 如果 app 需要跨 task 共享同一个 handle,应由 app 自己加锁.
-- 不同 handle 是否可以并发使用取决于它们是否共享同一个底层硬件资源;BSP 只保护必要的 board-level shared resource 生命周期,不提供全局并发调度语义.
-- API 设计期允许破坏性调整;稳定后新增能力优先 additive.
+- IO 操作应返回实际读写长度,并由调用者传入 `timeout_ms`;长度参数 (`*xxx_out`) 只要指针合法就总是有效,失败返回时也写入真实传输量.
+- 带 `timeout_ms` 的阻塞读写: 传输了任何字节就返回 `ESP_OK` (短读/短写不是错误);一个字节都没传成才返回 `ESP_ERR_TIMEOUT`,长度参数写 0.
 
-## 5. Board Port 职责
+## 3. Board Port 职责
 
-每块板子实现同一组公开 BSP API,但内部可以完全不同.
+每块板子实现同一组公开 BSP API,但内部可以完全不同. 通用约束见 `AGENTS.md` §4.
 
 board port 负责:
 
-- GPIO / bus / chip address 映射.
-- I2C,SPI,I2S,UART,SDMMC/SDSPI 等 bus 生命周期管理.
+- GPIO / bus / chip address 映射,以及 I2C,SPI,I2S,UART,SDMMC 等 bus 的生命周期.
 - power enable,reset,mute,backlight,IOEXP 默认电平等板级时序.
 - 多外设共享 bus 或共享控制脚时的引用计数和状态管理.
 - 将私有 chip driver 组合成面向 app 的 BSP 语义.
-- 声明当前 board port 已接入并可通过公共 API 使用的能力.
+- 声明本板接入的能力: `board.cmake` 登记实现,缺口登记到 `BSP_BOARD_UNSUPPORTED` 由 CMake 兜底;`desc.present` 与实现一致.
 
-board port 不应该:
+board port 的实现细节只存在于 `src/boards/<board>/` 内,不进入公共 API.
 
-- 暴露内部头文件给 app.
-- 要求 app include 私有 driver.
-- 把某块板子的特殊状态机塞进公共 API.
-- 为未确认的硬件路径提前设计稳定接口.
+## 4. Private Driver 职责
 
-## 6. Private Driver 职责
+`src/drivers/` 放 BSP 私有小芯片 driver,通用规则见 `AGENTS.md` §4.
 
-BSP 优先直接管理板上小芯片 driver,避免 app 或 board port 通过 ESP-IDF Component Manager 直接依赖零散外部 driver.
+driver 与 board port 的分工:
 
-private driver 负责:
+- driver 只处理芯片级事实: 寄存器读写,初始化序列,格式配置,power/mute/reset 等最小状态控制.
+- driver 不感知板级事实: pin,bus 选择,地址,power sequence 中的 GPIO/IOEXP 组合都由 board port 传入.
+- driver 不承载 app 语义,不为了跨芯片统一做抽象.
 
-- 芯片级寄存器读写.
-- 芯片级初始化,格式配置,power/mute/reset 等最小状态控制.
-- 暴露足够 board port 使用的小而专接口.
+## 5. Common Layer 职责
 
-private driver 不负责:
+`src/common` 放跨板复用的组合层: 对 DoerS3 和 AuraS3 都成立的行为才放这里.
 
-- app 语义.
-- board pin 和 bus 选择.
-- power sequence 中的板级 GPIO/IOEXP 组合逻辑.
-- 复杂通用抽象或跨芯片统一 HAL.
+- 组合逻辑可以依赖 BSP 内部头和私有 driver,但 board truth (pin,bus,地址,板级时序) 只能由 board port 以 `get_config()` / `get_pins()` 这类形式提供.
+- 适合: 共享 bus owner,共享 helper,组合多个外设的 app-facing 行为.
+- 不适合: 某块板子的 pin/IOEXP/reset/power sequence,尚未确认跨板复用的抽象,为凑文件数强行拆出的 wrapper.
 
-实现策略:
+当前文件 (细节见源码):
 
-- 可以参考已有开源/托管组件的寄存器序列和基础读写实现.
-- 不要求为了"纯净"而完全对照手册从零实现.
-- 如果多个 board 真实复用同一芯片 driver,可以在 `src/drivers/` 内复用.
-- 不为了假想复用提前设计通用 bus HAL 或 driver framework.
-- camera,UI,display panel 这类大集成可以保留外部依赖,但公共 API 必须明确边界.
+- `bsp_i2c.c`: shared I2C bus owner (singleton + refcount),配置来自 board port 的 `bsp_i2c_get_config()`.
+- `ui.c`: `bsp_ui` lifecycle,组合 display,touch,backlight 和 LVGL.
+- `audio.c`: 基于私有 ES8311/ES7210 driver 的播放/录音组合逻辑.
+- `sdcard.c`: 挂载/VFS 逻辑,pin 来自 board port 的 `bsp_sdcard_get_pins()`.
+- `lvgl/`: LVGL port 与 double buffer 分配策略.
+- `unsupported/`: 能力缺席时的共享 stub,由 CMake 按 `BSP_BOARD_UNSUPPORTED` 兜底.
 
-## 7. Common Layer 职责
-
-`src/common` 只放跨板复用的组合层.
-
-适合放入 `src/common` 的内容:
-
-- 只依赖公开 BSP API 的组合逻辑.
-- 对 DoerS3 和 AuraS3 都成立的 app-facing 行为.
-- 共享 bus owner 或 helper,前提是 board port 仍传入 board truth.
-- 不包含具体 GPIO,寄存器地址或板级 power sequence 的代码.
-
-当前 examples:
-
-- `src/common/ui.c`: `bsp_ui` lifecycle,组合 display,touch,backlight 和 LVGL.
-- `src/common/bsp_i2c.c`: shared I2C bus owner (singleton + refcount),由 board port 通过 `bsp_i2c_get_config()` 提供 pins/port/pullup.
-- `src/common/lvgl/bsp_lvgl_buffer.c`: LVGL double buffer allocation policy.
-- `src/common/unsupported/*_unsupported.c`: 当前 board 明确没有或未实现的 capability stub.
-
-不适合放入 `src/common` 的内容:
-
-- 某块板子的 pin,IOEXP,reset,power sequence.
-- 尚未确认是否跨板复用的抽象.
-- 为了文件数量一致而强行拆出来的 wrapper.
-
-## 8. 外设 API 模式
+## 6. 外设 API 模式
 
 外设 API 应围绕稳定语义,而不是围绕具体芯片能力设计.
 
@@ -148,15 +98,12 @@ private driver 不负责:
 - board port 直接实现 `bsp_display_*` 公共 API,不存在中间 core 层.
 - LVGL port 是 internal bridge,由 board display 实现处理 native flush 和 transfer callback.
 - backlight API 表达亮度和开关,不暴露具体 PWM,IOEXP 或 panel command.
-- backlight 的 `present=false` 和 `get_desc()/open()` 返回 unsupported 由 board port 的 descriptor 和实现直接承担.
 
 ### Touch
 
-- touch API 返回 BSP 自有 touch point 结构.
-- 不暴露 `esp_lcd_touch_point_data_t`.
-- 坐标方向,swap,mirror 等由 board port 消化.
+- touch API 返回 BSP 自有 `bsp_touch_point_t`,不暴露 `esp_lcd_touch_point_data_t` 等第三方类型.
+- 坐标方向,swap,mirror 和触点校正由 board port 消化,app 不感知具体触控芯片配置.
 - board port 直接实现 `bsp_touch_*` 公共 API,不存在中间 core 层.
-- 触点坐标和方向校正在 board port 内完成,app 不暴露具体触控芯片配置.
 
 ### UI
 
@@ -172,32 +119,36 @@ private driver 不负责:
 - `bsp_i2c` 是 board-owned public bus service,不是通用 I2C HAL.
 - board port 通过 `bsp_i2c_get_config()` 提供默认 bus truth (port,pin,pull-up,glitch filter);结构体和声明在内部头 `src/common/bsp_i2c_internal.h`,不进入公开 API.
 - `src/common/bsp_i2c.c` 是单例 bus owner,负责 acquire/release/refcount/I2C 创建和销毁,避免每个外设重复初始化 I2C bus.
-- `bsp_i2c_scan()` 和 `bsp_i2c_probe()` 面向 shell/app 诊断,只表达 7-bit address,不允许 app 自己选择 board pin.
+- `bsp_i2c_scan()` 和 `bsp_i2c_probe()` 面向 app 诊断,只表达 7-bit address,不允许 app 自己选择 board pin.
+- `bsp_i2c_probe()` 和 `bsp_i2c_scan()` 自带 acquire/release,调用者不需要先 acquire.
 - `bsp_i2c_acquire()` 是唯一入口: 首次调用时创建 bus,后续递增 refcount. 调用者必须配对 `bsp_i2c_release()`.
 - `bsp_i2c_acquire()` 是 public API 中唯一暴露 ESP-IDF 类型的逃生舱,供 app 挂接自己的 I2C 器件;不要为一个便利接口再扩大这个例外.
 - app 若要访问板载芯片,仍应优先使用对应 BSP 外设 API,不要绕过 BSP 直接操作板载 device address.
 
 ### SD Card
 
-- sdcard API 表达 mount/unmount 和挂载点.
+- sdcard API 表达 handle 生命周期,mount/unmount,挂载点和只读的 card / FAT 信息查询.
 - public sdcard API 在 `src/common/sdcard.c` 中由 common 层实现;board port 通过 `bsp_sdcard_get_pins()` 提供 pin 配置.
 - 不在核心 API 中暴露 `sdmmc_card_t`.
-- board port 可选择 SDMMC 或 SDSPI,但 public API 不暴露 bus 细节.
+- `open()` 只分配 handle,不访问硬件;SDMMC 初始化和卡检测在 `mount()` 时发生,`close()` 会自动 unmount. 挂载点必须是以 `/` 开头的绝对路径.
+- 当前实现固定为 SDMMC 1-bit,board port 只提供 `clk/cmd/d0` 三个 pin. 若未来需要 SDSPI 或 4-bit,先扩展 board 配置结构,再由 common 层支持.
 - 如后续确需访问原生 card handle,应单独设计明确的 ESP-IDF escape hatch.
 
 ### GNSS
 
-- GNSS API 表达串口数据读取,NMEA 数据可用性或后续解析结果.
+- GNSS API 第一阶段只表达串口原始字节流读取;NMEA 分帧和坐标解析不属于 BSP,由 app 完成.
 - board port 直接实现 `bsp_gnss_*` 公共 API,不存在中间 core 层.
 - UART 选择,波特率默认值和电源/reset 控制由 board port 负责.
+- `bsp_gnss_read()` 在超时内读到数据就返回 `ESP_OK` 加实际长度 `len_out`;一个字节都没读到返回 `ESP_ERR_TIMEOUT`,`len_out == 0`.
 - raw NMEA 输出可以作为早期 test_app / shell 验证路径,稳定结构化定位 API 可后续再收敛.
 
 ### IMU
 
 - IMU API 返回 BSP 自有数据结构.
 - board port 直接实现 `bsp_imu_*` 公共 API,不存在中间 core 层.
-- 字段名应带单位,例如 `accel_mps2_x`,`gyro_rads_x`,`temperature_c`,`timestamp_ms`.
+- 字段名应带单位,例如 `accel_mps2_x`,`gyro_rads_x`,`temperature_c`;单位未确认的值不带 `_ms` / `_us` 之类的时间后缀,例如 `timestamp_ticks`.
 - 具体芯片寄存器配置留在 private driver 和 board port 内部.
+- 当前读路径是轮询数据寄存器,不使用 FIFO 或中断;`bsp_imu_is_data_ready()` 供 app 自行决定采样节奏.
 
 ### Audio
 
@@ -212,11 +163,12 @@ private driver 不负责:
 ### Camera
 
 - camera API 优先提供最小单帧采集: `open -> capture -> release_frame -> close`.
+- 同一时刻只允许一个 active frame;`capture()` 在上一帧 `release_frame()` 之前会返回错误,且可能阻塞等待新帧.
 - DoerS3 board port 直接实现 `bsp_camera_*` 公共 API;AuraS3 的 unsupported 由 `src/common/unsupported/camera_unsupported.c` 提供.
 - frame release 必须带回对应 `bsp_camera_frame_t`,避免多 buffer 时语义不清.
 - AuraS3 无 camera 硬件,必须返回 `ESP_ERR_NOT_SUPPORTED`,且不声明 camera capability.
 - DoerS3 camera 是可选 build capability;只有 `CONFIG_BSP_ENABLE_CAMERA=y` 时才编译 camera port,声明 camera capability 并链接 `esp32-camera` / `esp_jpeg`.
-- 启用 DoerS3 camera 的 app 必须在自己的 `idf_component.yml` 中声明 `espressif/esp32-camera` 和 `espressif/esp_jpeg` 依赖;BSP 默认不强制所有 app 下载和编译 camera 组件.
+- 启用 DoerS3 camera 的 app 只需在自己的 `idf_component.yml` 中声明 `espressif/esp32-camera`;`esp_jpeg` 由它的必需依赖自动带入. BSP 默认不强制所有 app 下载和编译 camera 组件.
 - 连续流,JPEG,图像显示,传感器参数调节可以后续增量设计.
 
 ### PMU
@@ -227,19 +179,19 @@ private driver 不负责:
 - 充电参数,DCDC/LDO rail control 和 software power-off 在板级验证前不进入稳定 public API.
 - raw IRQ / raw status 只能作为 bring-up 临时调试手段,结论确认后应删除或留在 internal-only debug,不能进入稳定 public API.
 
-## 9. 错误语义
+## 7. 错误语义
 
 公共 API 统一使用以下错误含义:
 
 - `ESP_OK`: 操作成功.
 - `ESP_ERR_NOT_SUPPORTED`: 当前板子没有该能力,或该 board port 尚未实现.
 - `ESP_ERR_INVALID_ARG`: 调用参数错误.
-- `ESP_ERR_INVALID_STATE`: 生命周期或状态错误,例如未 open,重复 start,未 mount.
-- `ESP_ERR_TIMEOUT`: 带 timeout 的操作等待超时.
+- `ESP_ERR_INVALID_STATE`: 生命周期或状态错误,例如未 open,重复 open,未 start,未 mount.
+- `ESP_ERR_TIMEOUT`: 带 timeout 的阻塞读写在超时内没有传输任何字节,或内部等待 (锁,I2C 总线) 超时.
 - `ESP_ERR_NOT_FOUND`: 硬件按设计应存在,但探测不到或无响应.
 - 其他 ESP-IDF 错误码可以向上传递,但 board port 应尽量在日志中说明上下文.
 
-## 10. 并发和状态边界
+## 8. 并发和状态边界
 
 BSP public API 默认按简单串行模型设计,不把每个外设 API 都做成线程安全接口.
 
@@ -248,15 +200,18 @@ BSP public API 默认按简单串行模型设计,不把每个外设 API 都做�
 - 不同 handle 可以在 app 层分属不同 task,但如果它们共享底层硬件资源,仍应避免无序并发访问.
 - BSP board port 应保护必要的 shared board resource 生命周期,例如 shared I2C bus,IO expander,power enable,reset,PA mute,display transfer callback 等.
 - BSP 不提供全局 bus scheduler,不承诺 open/close/read/write/capture 在跨 task 乱序调用时仍安全.
-- close/start/stop 这类生命周期 API 应尽量检查状态,返回 `ESP_ERR_INVALID_STATE`,并在失败路径做必要回滚.
+- `close` 等生命周期 API 应检查状态并返回 `ESP_ERR_INVALID_STATE`,在失败路径做必要回滚;`start` / `stop` 幂等 (见 §2).
+- `bsp_display_set_done_cb()` 应在传输开始前设置;回调运行在中断上下文,内部不得阻塞.
+- LVGL 不是线程安全的: app 的 LVGL 调用必须与 `bsp_ui_process()` 在同一 task,或由 app 自己加锁;BSP 当前不提供 ui lock.
 
 建议 app 使用方式:
 
 - 一个外设 handle 由一个 task 拥有并负责 open/close.
 - 其他 task 通过 queue/event/message 请求该 owner task 操作外设.
 - 如果必须直接共享 handle,在 app 层围绕该 handle 加锁.
+- 需要从其他 task 操作 UI 时,通过 queue/event 交给 UI task;不要直接跨 task 调 LVGL.
 
-## 11. Kconfig
+## 9. Kconfig
 
 Kconfig 选择当前 board,以及少量重量级 capability 的 build 开关:
 
@@ -268,6 +223,7 @@ CONFIG_BSP_ENABLE_CAMERA
 
 - 不在 Kconfig 中配置每个 GPIO,屏幕尺寸,UART 口,I2C 地址或 codec 路径.
 - 可以用 Kconfig 选择重量级可选 capability 的编译开关,例如 `CONFIG_BSP_ENABLE_CAMERA`,用于避免非 camera app 强制链接 camera 依赖.
+- board choice 默认 DoerS3;test_app 通过 `bsp.sh` 显式写入,不依赖默认值.
 
 原因:
 
@@ -275,7 +231,7 @@ CONFIG_BSP_ENABLE_CAMERA
 - 配置项过多会让 BSP 变成半成品 board database.
 - app 只应选择目标 board,而不是重新描述硬件.
 
-## 12. Test App 规则
+## 10. Test App 规则
 
 复杂能力 (多外设组合,需要人工观察) 放在 `components/bsp/test_app/<name>` 下单独验证;简单 I2C/UART 外设和通用调试能力合并到 shell 命令验证.
 
@@ -289,17 +245,18 @@ CONFIG_BSP_ENABLE_CAMERA
 - 同一个 app 切换 board 时,wrapper 自动清理 `sdkconfig` 和 `build/`.
 - 需要硬件动作的测试在日志中明确提示,不把人工步骤藏进 BSP 代码.
 - 无法自动判定的测试应输出足够数据,供人工判断.
+- 需要额外 managed component 的 app 在自己的 `main/idf_component.yml` 声明依赖,例如 camera app 的 `espressif/esp32-camera`.
 - 删除或暂停的实验能力不保留长期 test_app 噪声.
 
 常用命令:
 
 ```bash
 cd components/bsp/test_app
-./bsp.sh board aura build flash monitor
+./bsp.sh shell aura build flash monitor
 ./bsp.sh ui doer build flash monitor
 ```
 
-## 13. Shell 调试边界
+## 11. Shell 调试边界
 
 shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 
@@ -307,11 +264,11 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 
 - shell 命令只调用 BSP public API.
 - `i2c scan` 这类诊断命令也应走 BSP public diagnostic API,避免 shell 复制 board pin/port.
-- shell 可用于 `bsp`, `imu`, `touch`, `gnss`, `backlight`, `sd`, `audio` 等手动调试.
+- shell 可用于 `bsp`, `imu`, `touch`, `gnss`, `backlight`, `sd` 等手动调试;audio 等复杂外设由自己的 test_app 验证.
 - shell 不恢复 display `fill` / `colorbars` 命令,避免把 board-native display byte order 变成应用语义.
 - 若某个调试能力需要 board-private hook,应先讨论是否值得进入 public API 或 test_app,不要直接让 shell include board private header.
 
-## 14. 演进策略
+## 12. 演进策略
 
 - 设计期允许破坏性调整 API,优先把接口形态做对.
 - 稳定后新增能力优先 additive,避免无意义 churn.
@@ -320,13 +277,13 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 - 实验能力优先放在内部实现或临时 test_app 中验证,确认后再设计公共 API.
 - 如果抽象让代码更难解释,调试或验证,应退回更直接的实现.
 
-## 15. 文档分工
+## 13. 文档分工
 
 - `README.md`: 仓库目的,构成,快速开始和文档索引.
 - `docs/bsp/README.md`: BSP 文档入口和导航.
 - `docs/bsp/capabilities.md`: 双板能力矩阵和 public API 一览.
 - `docs/bsp/porting-guide.md`: Board port 接入指南和每个文件的实现模板.
-- `docs/bsp_design.md`: 长期设计边界和 API 原则.
+- `docs/bsp_design.md`: BSP 结构,分层职责和 API 语义.
 - `docs/bsp/status.md`: 当前状态,已完成项,缺口和下一步.
 - `docs/hw/boards/*_truth_table.md`: 硬件事实,pin,bus,芯片连接和待确认项.
 - `docs/hw/auras3-display-te.md`: AuraS3 CO5300 TE 实验记录和当前取舍.

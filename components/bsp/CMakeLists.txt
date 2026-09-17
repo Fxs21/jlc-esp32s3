@@ -29,6 +29,7 @@ set(bsp_priv_requires
 
 set(BSP_BOARD_SRCS)
 set(BSP_BOARD_DRIVERS)
+set(BSP_BOARD_UNSUPPORTED)
 set(BSP_BOARD_PRIV_INCLUDE_DIRS)
 set(BSP_BOARD_PRIV_LINK_LIBS)
 
@@ -37,6 +38,23 @@ if(CONFIG_BSP_BOARD_DOERS3)
 elseif(CONFIG_BSP_BOARD_AURAS3)
     include("${CMAKE_CURRENT_LIST_DIR}/src/boards/auras3/board.cmake")
 endif()
+
+# Capabilities a board does not provide fall back to a shared stub, so a
+# missing capability is a configure-time decision instead of a link error.
+# Register new stubs here; boards list what they lack in BSP_BOARD_UNSUPPORTED.
+set(BSP_CAPABILITY_STUB_camera "src/common/unsupported/camera_unsupported.c")
+set(BSP_CAPABILITY_STUB_pmu "src/common/unsupported/pmu_unsupported.c")
+
+foreach(capability IN LISTS BSP_BOARD_UNSUPPORTED)
+    if(NOT DEFINED BSP_CAPABILITY_STUB_${capability})
+        message(FATAL_ERROR
+            "bsp: board declares capability '${capability}' as unsupported, "
+            "but no BSP_CAPABILITY_STUB_${capability} is registered")
+    endif()
+    list(APPEND BSP_BOARD_SRCS "${BSP_CAPABILITY_STUB_${capability}}")
+    message(STATUS
+        "bsp: '${capability}' unsupported on this board, using ${BSP_CAPABILITY_STUB_${capability}}")
+endforeach()
 
 list(APPEND srcs ${BSP_BOARD_SRCS} ${BSP_BOARD_DRIVERS})
 list(APPEND priv_include_dirs ${BSP_BOARD_PRIV_INCLUDE_DIRS})

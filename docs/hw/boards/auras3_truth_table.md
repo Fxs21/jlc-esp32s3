@@ -54,7 +54,7 @@
 
 - `01_AXP2101/sdkconfig.defaults` 写 `CONFIG_PMU_I2C_SCL=7` / `CONFIG_PMU_I2C_SDA=8`,与已确认主 pin 表 `SCL=14` / `SDA=15` 冲突;视为示例残留,实现以主 I2C 为准.
 - Arduino `pin_config.h` 同时出现 `I2S_MCK_IO=16` 和实际 `MCLKPIN=42`;当前实现以官方 ESP-IDF BSP 和真机确认的 `GPIO42` 为准.
-|- SD wiring 官方资料偏向 SDMMC 1-bit,当前 BSP 已使用 SDMMC 1-bit 并真机确认.
+- SD wiring 官方资料偏向 SDMMC 1-bit,当前 BSP 已使用 SDMMC 1-bit 并真机确认.
 
 ### AuraS3 真机 I2C scan 结果
 
@@ -116,7 +116,7 @@
 
 ### Display 初始化要点
 
-- 当前 BSP 使用官方 `esp_lcd_co5300` QSPI panel driver,panel 生命周期在 `auras3/display.c` 中统一管理,backlight 和 display 通过 ref_count 共享。
+- 当前 BSP 使用官方 `esp_lcd_co5300` QSPI panel driver,panel 生命周期在 `auras3/display.c` 中统一管理,backlight 和 display 通过 ref_count 共享.
 - CO5300 init table 已按厂家 QSPI/RGB565 序列收敛: `FE 00`,`C4 80`,`3A 55`,`35 00`,`53 20`,`51 00`,`63 FF`,`2A 00 06 01 D7`,`2B 00 00 01 D1`,`11` delay `60ms`,`29`.
 - 厂家序列使用 `51 FF` 直接满亮;当前 BSP 保留 `51 00`,避免 init 阶段亮脏首帧,由 UI/backlight API 后续设置亮度.
 - `bsp_display` public API 只提供 native async transfer + wait,不提供 `fill` 或 public host-order writer.

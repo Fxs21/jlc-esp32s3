@@ -29,7 +29,7 @@ typedef struct {
 
 typedef struct ft6336_s *ft6336_handle_t;
 
-esp_err_t ft6336_open(const ft6336_config_t *cfg, ft6336_handle_t *out_handle);
+esp_err_t ft6336_open(const ft6336_config_t *cfg, ft6336_handle_t *handle_out);
 esp_err_t ft6336_close(ft6336_handle_t handle);
 esp_err_t ft6336_read(ft6336_handle_t handle, bsp_touch_point_t *points, size_t points_capacity, size_t *points_num);
 

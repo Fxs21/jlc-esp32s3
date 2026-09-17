@@ -49,18 +49,21 @@ set(BSP_BOARD_SRCS
     "src/boards/<board>/audio.c"
     "src/boards/<board>/gnss.c"
     "src/boards/<board>/sdcard.c"
-    "src/common/unsupported/pmu_unsupported.c"     # 若无 PMU
+)
+
+set(BSP_BOARD_UNSUPPORTED
+    "pmu"    # 本板没有 PMU
 )
 ```
 
 规则:
 
-- `BSP_BOARD_SRCS`: board port 源文件 + 本板需要的 unsupported stub
+- `BSP_BOARD_SRCS`: board port 源文件,不要手写 unsupported stub
+- `BSP_BOARD_UNSUPPORTED`: 本板没有的 capability (如 `pmu`,`camera`);对应共享 stub 由 `components/bsp/CMakeLists.txt` 兜底追加,未注册 stub 的 capability 会在 configure 阶段报错
 - `BSP_BOARD_DRIVERS`: 私有 IC driver (如 `src/drivers/touch/ft6336.c`)
 - `BSP_BOARD_PRIV_INCLUDE_DIRS`: 需要 include 的 private 目录 (如 `src/boards/<board>/internal`)
 - `BSP_BOARD_PRIV_LINK_LIBS`: 需要额外链接的 managed component (如 `idf::espressif__esp_lcd_co5300`)
-- 不需要 camera 的板子,用 `src/common/unsupported/camera_unsupported.c`
-- camera 可选: 用 `if(CONFIG_BSP_ENABLE_CAMERA)` 条件编译
+- camera 可选: `if(CONFIG_BSP_ENABLE_CAMERA)` 时把实现加入 `BSP_BOARD_SRCS`,`else()` 时把 `camera` 加入 `BSP_BOARD_UNSUPPORTED`
 
 参考 `components/bsp/src/boards/doers3/board.cmake` 和 `components/bsp/src/boards/auras3/board.cmake`.
 
@@ -397,7 +400,7 @@ cd test_app
 1. **Board port 只能导出 `bsp_*` public symbols**, 不暴露私有 driver 类型
 2. **Linker 选择**, 不运行时区分板型, 不做 board detect
 3. **`close(NULL)` 返回 `ESP_ERR_INVALID_ARG`**
-4. **`open()` 先置空 `*out_handle`**, 失败路径不保留旧值
+4. **`open()` 先置空 `*handle_out`**, 失败路径不保留旧值
 5. **外设间共享资源通过 `bsp_i2c_acquire/release` 和 `<board>_ioexp_acquire/release` 管理**, 不自己搞 refcount
 6. **pins.h 是 pin 分配的单一事实来源**, 代码不硬编码 GPIO 值
 7. **修改 board port 后应同步更新 truth table** (`docs/hw/boards/<board>_truth_table.md`)

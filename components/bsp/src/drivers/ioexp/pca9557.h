@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct pca9557_s *pca9557_handle_t;
 
-esp_err_t pca9557_open(const pca9557_config_t *cfg, pca9557_handle_t *out_handle);
+esp_err_t pca9557_open(const pca9557_config_t *cfg, pca9557_handle_t *handle_out);
 esp_err_t pca9557_close(pca9557_handle_t handle);
 esp_err_t pca9557_read_port(pca9557_handle_t handle, uint8_t *value);
 esp_err_t pca9557_write_port(pca9557_handle_t handle, uint8_t value);

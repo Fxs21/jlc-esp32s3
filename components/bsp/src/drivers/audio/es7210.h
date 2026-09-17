@@ -31,7 +31,7 @@ typedef struct {
     es7210_mclk_src_t mclk_src;
 } es7210_config_t;
 
-esp_err_t es7210_open(const es7210_config_t *cfg, es7210_handle_t *out_handle);
+esp_err_t es7210_open(const es7210_config_t *cfg, es7210_handle_t *handle_out);
 esp_err_t es7210_close(es7210_handle_t handle);
 esp_err_t es7210_set_format(es7210_handle_t handle, uint32_t sample_rate, uint8_t bits_per_sample);
 esp_err_t es7210_enable(es7210_handle_t handle, bool enable);

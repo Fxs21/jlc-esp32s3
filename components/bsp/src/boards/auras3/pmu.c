@@ -17,6 +17,8 @@ struct bsp_pmu_t {
     bool i2c_acquired;
 };
 
+static bool s_pmu_open;
+
 static const bsp_pmu_desc_t s_desc = {
     .present = true,
     .model = "AXP2101",
@@ -104,10 +106,11 @@ const bsp_pmu_desc_t *bsp_pmu_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *out_pmu)
+esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *pmu_out)
 {
-    ESP_RETURN_ON_FALSE(out_pmu != NULL, ESP_ERR_INVALID_ARG, TAG, "out_pmu is null");
-    *out_pmu = NULL;
+    ESP_RETURN_ON_FALSE(pmu_out != NULL, ESP_ERR_INVALID_ARG, TAG, "pmu_out is null");
+    ESP_RETURN_ON_FALSE(!s_pmu_open, ESP_ERR_INVALID_STATE, TAG, "pmu already open");
+    *pmu_out = NULL;
 
     const bsp_pmu_config_t default_config = BSP_PMU_CONFIG_DEFAULT();
     const bsp_pmu_config_t *cfg = config != NULL ? config : &default_config;
@@ -157,7 +160,8 @@ esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *out_pmu
         }
     }
 
-    *out_pmu = pmu;
+    s_pmu_open = true;
+    *pmu_out = pmu;
     return ESP_OK;
 
 err:
@@ -169,15 +173,16 @@ err:
 esp_err_t bsp_pmu_close(bsp_pmu_handle_t pmu)
 {
     ESP_RETURN_ON_FALSE(pmu != NULL, ESP_ERR_INVALID_ARG, TAG, "pmu is null");
+    s_pmu_open = false;
     esp_err_t ret = close_internal(pmu);
     free(pmu);
     return ret;
 }
 
-esp_err_t bsp_pmu_get_status(bsp_pmu_handle_t pmu, bsp_pmu_status_t *out_status)
+esp_err_t bsp_pmu_get_status(bsp_pmu_handle_t pmu, bsp_pmu_status_t *status_out)
 {
     ESP_RETURN_ON_FALSE(pmu != NULL, ESP_ERR_INVALID_ARG, TAG, "pmu is null");
-    ESP_RETURN_ON_FALSE(out_status != NULL, ESP_ERR_INVALID_ARG, TAG, "out_status is null");
+    ESP_RETURN_ON_FALSE(status_out != NULL, ESP_ERR_INVALID_ARG, TAG, "status_out is null");
 
     axp2101_status_t axp_status = {0};
     ESP_RETURN_ON_ERROR(axp2101_get_status(pmu->axp, &axp_status), TAG, "get axp status failed");
@@ -196,17 +201,17 @@ esp_err_t bsp_pmu_get_status(bsp_pmu_handle_t pmu, bsp_pmu_status_t *out_status)
     status.system_voltage_mv = axp_status.system_voltage_mv;
     status.pmu_temperature_c = axp_status.temperature_c;
 
-    *out_status = status;
+    *status_out = status;
     return ESP_OK;
 }
 
-esp_err_t bsp_pmu_get_events(bsp_pmu_handle_t pmu, bsp_pmu_event_t *out_events, bool clear)
+esp_err_t bsp_pmu_get_events(bsp_pmu_handle_t pmu, bsp_pmu_event_t *events_out, bool clear)
 {
     ESP_RETURN_ON_FALSE(pmu != NULL, ESP_ERR_INVALID_ARG, TAG, "pmu is null");
-    ESP_RETURN_ON_FALSE(out_events != NULL, ESP_ERR_INVALID_ARG, TAG, "out_events is null");
+    ESP_RETURN_ON_FALSE(events_out != NULL, ESP_ERR_INVALID_ARG, TAG, "events_out is null");
 
     axp2101_event_t events = AXP2101_EVENT_NONE;
     ESP_RETURN_ON_ERROR(axp2101_get_events(pmu->axp, &events, clear), TAG, "get events failed");
-    *out_events = map_events(events);
+    *events_out = map_events(events);
     return ESP_OK;
 }

@@ -22,7 +22,6 @@
 #define DISPLAY_BYTES_PER_PIXEL   2
 #define PANEL_TRANS_QUEUE_DEPTH   10
 #define PANEL_DEFAULT_BRIGHTNESS  0
-#define LOCK_TIMEOUT_MS           UINT32_MAX
 
 // Shared panel resource. backlight operates on the same CO5300 panel.
 static esp_lcd_panel_handle_t s_panel;
@@ -174,6 +173,8 @@ struct bsp_backlight_s {
     uint8_t percent;
 };
 
+static bool s_backlight_open;
+
 static const bsp_backlight_desc_t s_bl_desc = {
     .present = true,
 };
@@ -183,10 +184,11 @@ const bsp_backlight_desc_t *bsp_backlight_get_desc(void)
     return &s_bl_desc;
 }
 
-esp_err_t bsp_backlight_open(bsp_backlight_handle_t *out_handle)
+esp_err_t bsp_backlight_open(bsp_backlight_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
-    *out_handle = NULL;
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_backlight_open, ESP_ERR_INVALID_STATE, TAG, "backlight already open");
+    *handle_out = NULL;
 
     struct bsp_backlight_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -207,13 +209,15 @@ esp_err_t bsp_backlight_open(bsp_backlight_handle_t *out_handle)
     handle->percent = PANEL_DEFAULT_BRIGHTNESS;
     panel_unlock();
 
-    *out_handle = handle;
+    s_backlight_open = true;
+    *handle_out = handle;
     return ESP_OK;
 }
 
 esp_err_t bsp_backlight_close(bsp_backlight_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    s_backlight_open = false;
 
     esp_err_t ret = panel_lock();
     if (ret != ESP_OK) {
@@ -240,11 +244,11 @@ esp_err_t bsp_backlight_set_percent(bsp_backlight_handle_t handle, uint8_t perce
     return ESP_OK;
 }
 
-esp_err_t bsp_backlight_get_percent(bsp_backlight_handle_t handle, uint8_t *out_percent)
+esp_err_t bsp_backlight_get_percent(bsp_backlight_handle_t handle, uint8_t *percent_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_percent != NULL, ESP_ERR_INVALID_ARG, TAG, "out_percent is null");
-    *out_percent = handle->percent;
+    ESP_RETURN_ON_FALSE(percent_out != NULL, ESP_ERR_INVALID_ARG, TAG, "percent_out is null");
+    *percent_out = handle->percent;
     return ESP_OK;
 }
 
@@ -341,11 +345,11 @@ static esp_err_t validate_write_args(bsp_display_handle_t handle,
     return ESP_OK;
 }
 
-esp_err_t bsp_display_open(bsp_display_handle_t *out_handle)
+esp_err_t bsp_display_open(bsp_display_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
     ESP_RETURN_ON_FALSE(!s_display_open, ESP_ERR_INVALID_STATE, TAG, "display already open");
-    *out_handle = NULL;
+    *handle_out = NULL;
 
     struct bsp_display_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -370,7 +374,7 @@ esp_err_t bsp_display_open(bsp_display_handle_t *out_handle)
     s_display_open = true;
     panel_unlock();
 
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 }
 
@@ -432,11 +436,11 @@ esp_err_t bsp_display_write(bsp_display_handle_t handle,
 
 // ------------------------------------------------------- internal LVGL port API
 
-esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t **out_display)
+esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t **display_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_display != NULL, ESP_ERR_INVALID_ARG, TAG, "out_display is null");
-    *out_display = NULL;
+    ESP_RETURN_ON_FALSE(display_out != NULL, ESP_ERR_INVALID_ARG, TAG, "display_out is null");
+    *display_out = NULL;
 
     ESP_RETURN_ON_ERROR(bsp_lvgl_port_open(&handle->port, AURAS3_LCD_WIDTH, AURAS3_LCD_HEIGHT, handle),
                         TAG, "lvgl port open failed");
@@ -454,7 +458,7 @@ esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t *
     ESP_RETURN_ON_ERROR(bsp_display_set_done_cb(handle, lvgl_flush_ready_cb, handle->port.lv_display),
                         TAG, "set transfer callback failed");
 
-    *out_display = handle->port.lv_display;
+    *display_out = handle->port.lv_display;
     return ESP_OK;
 }
 

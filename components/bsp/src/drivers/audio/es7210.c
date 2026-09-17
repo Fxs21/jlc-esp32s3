@@ -281,11 +281,11 @@ static esp_err_t es7210_stop(es7210_handle_t handle)
     return es7210_write_reg(handle, ES7210_POWER_DOWN_REG06, 0x07);
 }
 
-esp_err_t es7210_open(const es7210_config_t *cfg, es7210_handle_t *out_handle)
+esp_err_t es7210_open(const es7210_config_t *cfg, es7210_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "cfg is null");
     ESP_RETURN_ON_FALSE(cfg->bus != NULL, ESP_ERR_INVALID_ARG, TAG, "bus is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
 
     struct es7210_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -333,7 +333,7 @@ esp_err_t es7210_open(const es7210_config_t *cfg, es7210_handle_t *out_handle)
 
     ESP_LOGI(TAG, "Work in %s mode", handle->master_mode ? "Master" : "Slave");
     handle->opened = true;
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 
 err:

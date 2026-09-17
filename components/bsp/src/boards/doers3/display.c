@@ -182,11 +182,11 @@ static esp_err_t panel_deinit(struct bsp_display_s *handle)
 
 // ---------- public display API ----------
 
-esp_err_t bsp_display_open(bsp_display_handle_t *out_handle)
+esp_err_t bsp_display_open(bsp_display_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
     ESP_RETURN_ON_FALSE(!s_display_open, ESP_ERR_INVALID_STATE, TAG, "display already open");
-    *out_handle = NULL;
+    *handle_out = NULL;
 
     struct bsp_display_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -205,7 +205,7 @@ esp_err_t bsp_display_open(bsp_display_handle_t *out_handle)
     }
 
     s_display_open = true;
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 }
 
@@ -259,11 +259,11 @@ esp_err_t bsp_display_write(bsp_display_handle_t handle,
 
 // ---------- internal LVGL port API ----------
 
-esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t **out_display)
+esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t **display_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_display != NULL, ESP_ERR_INVALID_ARG, TAG, "out_display is null");
-    *out_display = NULL;
+    ESP_RETURN_ON_FALSE(display_out != NULL, ESP_ERR_INVALID_ARG, TAG, "display_out is null");
+    *display_out = NULL;
 
     ESP_RETURN_ON_ERROR(bsp_lvgl_port_open(&handle->port, DOERS3_LCD_WIDTH, DOERS3_LCD_HEIGHT, handle),
                         TAG, "lvgl port open failed");
@@ -271,7 +271,7 @@ esp_err_t bsp_display_port_lvgl_open(bsp_display_handle_t handle, lv_display_t *
     ESP_RETURN_ON_ERROR(bsp_display_set_done_cb(handle, lvgl_flush_ready_cb, handle->port.lv_display),
                         TAG, "set transfer callback failed");
 
-    *out_display = handle->port.lv_display;
+    *display_out = handle->port.lv_display;
     return ESP_OK;
 }
 

@@ -88,10 +88,10 @@ static esp_err_t prepare_lines(const bsp_i2c_bus_config_t *cfg)
 // Public API
 // ---------------------------------------------------------------------------
 
-esp_err_t bsp_i2c_acquire(i2c_master_bus_handle_t *out_bus)
+esp_err_t bsp_i2c_acquire(i2c_master_bus_handle_t *bus_out)
 {
-    ESP_RETURN_ON_FALSE(out_bus != NULL, ESP_ERR_INVALID_ARG, TAG, "out_bus is null");
-    *out_bus = NULL;
+    ESP_RETURN_ON_FALSE(bus_out != NULL, ESP_ERR_INVALID_ARG, TAG, "bus_out is null");
+    *bus_out = NULL;
 
     esp_err_t ret = lock_take();
     if (ret != ESP_OK) {
@@ -100,7 +100,7 @@ esp_err_t bsp_i2c_acquire(i2c_master_bus_handle_t *out_bus)
 
     if (s_ref_count > 0) {
         s_ref_count++;
-        *out_bus = s_bus;
+        *bus_out = s_bus;
         ret = ESP_OK;
         goto out;
     }
@@ -140,7 +140,7 @@ esp_err_t bsp_i2c_acquire(i2c_master_bus_handle_t *out_bus)
     }
 
     s_ref_count = 1;
-    *out_bus = s_bus;
+    *bus_out = s_bus;
     ret = ESP_OK;
 
 out:
@@ -193,14 +193,14 @@ esp_err_t bsp_i2c_probe(uint8_t address, uint32_t timeout_ms)
     return ret != ESP_OK ? ret : release_ret;
 }
 
-esp_err_t bsp_i2c_scan(uint8_t *out_addresses, size_t address_capacity,
-                       size_t *out_count, uint32_t timeout_ms)
+esp_err_t bsp_i2c_scan(uint8_t *addresses_out, size_t address_capacity,
+                       size_t *count_out, uint32_t timeout_ms)
 {
-    ESP_RETURN_ON_FALSE(address_capacity == 0 || out_addresses != NULL,
+    ESP_RETURN_ON_FALSE(address_capacity == 0 || addresses_out != NULL,
                         ESP_ERR_INVALID_ARG, TAG, "addresses is null");
-    ESP_RETURN_ON_FALSE(out_count != NULL, ESP_ERR_INVALID_ARG, TAG, "out_count is null");
+    ESP_RETURN_ON_FALSE(count_out != NULL, ESP_ERR_INVALID_ARG, TAG, "count_out is null");
 
-    *out_count = 0;
+    *count_out = 0;
 
     i2c_master_bus_handle_t bus = NULL;
     esp_err_t ret = bsp_i2c_acquire(&bus);
@@ -213,13 +213,13 @@ esp_err_t bsp_i2c_scan(uint8_t *out_addresses, size_t address_capacity,
     for (uint8_t addr = BSP_I2C_SCAN_FIRST_ADDR; addr <= BSP_I2C_SCAN_LAST_ADDR; addr++) {
         if (i2c_master_probe(bus, addr, probe_timeout_ms) == ESP_OK) {
             if (found < address_capacity) {
-                out_addresses[found] = addr;
+                addresses_out[found] = addr;
             }
             found++;
         }
     }
 
-    *out_count = found;
+    *count_out = found;
     esp_err_t release_ret = bsp_i2c_release();
     if (release_ret != ESP_OK) {
         return release_ret;

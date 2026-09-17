@@ -17,7 +17,7 @@ typedef struct {
     const char *memory;
 } bsp_lvgl_buffer_t;
 
-esp_err_t bsp_lvgl_buffer_alloc(bsp_lvgl_buffer_t *out,
+esp_err_t bsp_lvgl_buffer_alloc(bsp_lvgl_buffer_t *buffer_out,
                                 uint16_t width,
                                 uint16_t height,
                                 uint8_t bytes_per_pixel);

@@ -34,13 +34,13 @@ typedef struct {
 } bsp_camera_frame_t;
 
 const bsp_camera_desc_t *bsp_camera_get_desc(void);
-// On failure, *out_handle is set to NULL after out_handle is validated.
-esp_err_t bsp_camera_open(bsp_camera_handle_t *out_handle);
+// On failure, *handle_out is set to NULL after handle_out is validated.
+esp_err_t bsp_camera_open(bsp_camera_handle_t *handle_out);
 esp_err_t bsp_camera_close(bsp_camera_handle_t handle);
 // Capture a frame. The returned data remains owned by the BSP and is valid until
 // bsp_camera_release_frame() or bsp_camera_close(). A second capture is rejected
 // until the active frame is released. This call may block while waiting for a frame.
-esp_err_t bsp_camera_capture(bsp_camera_handle_t handle, bsp_camera_frame_t *out_frame);
+esp_err_t bsp_camera_capture(bsp_camera_handle_t handle, bsp_camera_frame_t *frame_out);
 esp_err_t bsp_camera_release_frame(bsp_camera_handle_t handle, const bsp_camera_frame_t *frame);
 
 #ifdef __cplusplus

@@ -319,11 +319,11 @@ static esp_err_t es8311_suspend(es8311_handle_t handle)
     return es8311_write_reg(handle, ES8311_CLK_MANAGER_REG02, 0x00);
 }
 
-esp_err_t es8311_open(const es8311_config_t *cfg, es8311_handle_t *out_handle)
+esp_err_t es8311_open(const es8311_config_t *cfg, es8311_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "cfg is null");
     ESP_RETURN_ON_FALSE(cfg->bus != NULL, ESP_ERR_INVALID_ARG, TAG, "bus is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
 
     struct es8311_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -382,7 +382,7 @@ esp_err_t es8311_open(const es8311_config_t *cfg, es8311_handle_t *out_handle)
 
     ESP_LOGI(TAG, "Work in %s mode", handle->master_mode ? "Master" : "Slave");
     handle->opened = true;
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 
 err:

@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct tca9554_s *tca9554_handle_t;
 
-esp_err_t tca9554_open(const tca9554_config_t *cfg, tca9554_handle_t *out_handle);
+esp_err_t tca9554_open(const tca9554_config_t *cfg, tca9554_handle_t *handle_out);
 esp_err_t tca9554_close(tca9554_handle_t handle);
 esp_err_t tca9554_read_port(tca9554_handle_t handle, uint8_t *value);
 esp_err_t tca9554_write_port(tca9554_handle_t handle, uint8_t value);

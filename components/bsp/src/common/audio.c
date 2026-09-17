@@ -20,19 +20,14 @@ struct bsp_audio_common {
     bool rx_enabled;
 };
 
-static TickType_t timeout_ms_to_ticks(uint32_t timeout_ms)
+static esp_err_t stream_bit_width(uint8_t bits_per_sample, i2s_data_bit_width_t *width_out)
 {
-    return timeout_ms == UINT32_MAX ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms);
-}
-
-static esp_err_t stream_bit_width(uint8_t bits_per_sample, i2s_data_bit_width_t *out_width)
-{
-    if (out_width == NULL) {
+    if (width_out == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
     switch (bits_per_sample) {
     case 16:
-        *out_width = I2S_DATA_BIT_WIDTH_16BIT;
+        *width_out = I2S_DATA_BIT_WIDTH_16BIT;
         return ESP_OK;
     default:
         return ESP_ERR_NOT_SUPPORTED;
@@ -318,19 +313,21 @@ esp_err_t bsp_audio_common_play_set_volume(bsp_audio_common_t *c, int volume)
 
 esp_err_t bsp_audio_common_play_write(bsp_audio_common_t *c,
                                       const void *data, size_t len,
-                                      size_t *out_written, uint32_t timeout_ms)
+                                      size_t *written_out, uint32_t timeout_ms)
 {
-    if (c == NULL || data == NULL || out_written == NULL) {
+    if (c == NULL || data == NULL || written_out == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
     if (!c->playback_started) {
         return ESP_ERR_INVALID_STATE;
     }
     size_t written = 0;
-    ESP_RETURN_ON_ERROR(i2s_channel_write(c->tx_chan, data, len, &written, timeout_ms_to_ticks(timeout_ms)),
-                        TAG, "i2s write failed");
-    *out_written = written;
-    return ESP_OK;
+    esp_err_t ret = i2s_channel_write(c->tx_chan, data, len, &written, pdMS_TO_TICKS(timeout_ms));
+    *written_out = written;
+    if (ret == ESP_ERR_TIMEOUT && written > 0) {
+        return ESP_OK;
+    }
+    return ret;
 }
 
 esp_err_t bsp_audio_common_record_start(bsp_audio_common_t *c)
@@ -410,17 +407,19 @@ esp_err_t bsp_audio_common_record_set_gain(bsp_audio_common_t *c, float gain_db)
 
 esp_err_t bsp_audio_common_record_read(bsp_audio_common_t *c,
                                        void *data, size_t len,
-                                       size_t *out_read, uint32_t timeout_ms)
+                                       size_t *read_out, uint32_t timeout_ms)
 {
-    if (c == NULL || data == NULL || out_read == NULL) {
+    if (c == NULL || data == NULL || read_out == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
     if (!c->record_started) {
         return ESP_ERR_INVALID_STATE;
     }
     size_t read = 0;
-    ESP_RETURN_ON_ERROR(i2s_channel_read(c->rx_chan, data, len, &read, timeout_ms_to_ticks(timeout_ms)),
-                        TAG, "i2s read failed");
-    *out_read = read;
-    return ESP_OK;
+    esp_err_t ret = i2s_channel_read(c->rx_chan, data, len, &read, pdMS_TO_TICKS(timeout_ms));
+    *read_out = read;
+    if (ret == ESP_ERR_TIMEOUT && read > 0) {
+        return ESP_OK;
+    }
+    return ret;
 }

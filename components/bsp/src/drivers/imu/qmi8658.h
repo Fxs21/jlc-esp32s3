@@ -113,7 +113,7 @@ typedef struct {
     float accelX, accelY, accelZ;
     float gyroX, gyroY, gyroZ;
     float temperature;
-    uint32_t timestamp;
+    uint32_t timestamp_ticks;
 } qmi8658_data_t;
 
 typedef struct {
@@ -124,7 +124,7 @@ typedef struct {
     bool accel_unit_mps2;
     bool gyro_unit_rads;
     int display_precision;
-    uint32_t timestamp;
+    uint32_t timestamp_ticks;
 } qmi8658_dev_t;
 
 esp_err_t qmi8658_init(qmi8658_dev_t *dev, i2c_master_bus_handle_t bus_handle, uint8_t i2c_addr);

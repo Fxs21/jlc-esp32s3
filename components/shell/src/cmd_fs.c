@@ -23,9 +23,9 @@
 #define HEXDUMP_DEFAULT_LEN 256
 #define HEXDUMP_MAX_LEN 4096
 
-static bool parse_size_arg(const char *text, size_t min_value, size_t max_value, size_t *out_value)
+static bool parse_size_arg(const char *text, size_t min_value, size_t max_value, size_t *value_out)
 {
-    if (text == NULL || out_value == NULL) {
+    if (text == NULL || value_out == NULL) {
         return false;
     }
 
@@ -36,7 +36,7 @@ static bool parse_size_arg(const char *text, size_t min_value, size_t max_value,
         return false;
     }
 
-    *out_value = (size_t)value;
+    *value_out = (size_t)value;
     return true;
 }
 

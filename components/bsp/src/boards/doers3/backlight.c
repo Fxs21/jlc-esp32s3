@@ -13,6 +13,8 @@ struct bsp_backlight_s {
     uint8_t percent;
 };
 
+static bool s_backlight_open;
+
 static const bsp_backlight_desc_t s_desc = {
     .present = true,
 };
@@ -22,10 +24,11 @@ const bsp_backlight_desc_t *bsp_backlight_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_backlight_open(bsp_backlight_handle_t *out_handle)
+esp_err_t bsp_backlight_open(bsp_backlight_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
-    *out_handle = NULL;
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_backlight_open, ESP_ERR_INVALID_STATE, TAG, "backlight already open");
+    *handle_out = NULL;
 
     struct bsp_backlight_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -40,13 +43,15 @@ esp_err_t bsp_backlight_open(bsp_backlight_handle_t *out_handle)
         return ret;
     }
 
-    *out_handle = handle;
+    s_backlight_open = true;
+    *handle_out = handle;
     return ESP_OK;
 }
 
 esp_err_t bsp_backlight_close(bsp_backlight_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    s_backlight_open = false;
     esp_err_t ret = ESP_OK;
     if (handle->driver != NULL) {
         ret = backlight_ledc_close(handle->driver);
@@ -63,10 +68,10 @@ esp_err_t bsp_backlight_set_percent(bsp_backlight_handle_t handle, uint8_t perce
     return ESP_OK;
 }
 
-esp_err_t bsp_backlight_get_percent(bsp_backlight_handle_t handle, uint8_t *out_percent)
+esp_err_t bsp_backlight_get_percent(bsp_backlight_handle_t handle, uint8_t *percent_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_percent != NULL, ESP_ERR_INVALID_ARG, TAG, "out_percent is null");
-    *out_percent = handle->percent;
+    ESP_RETURN_ON_FALSE(percent_out != NULL, ESP_ERR_INVALID_ARG, TAG, "percent_out is null");
+    *percent_out = handle->percent;
     return ESP_OK;
 }

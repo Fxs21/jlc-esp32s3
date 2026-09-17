@@ -16,6 +16,8 @@ struct bsp_audio_s {
     bool ioexp_acquired;
 };
 
+static bool s_audio_open;
+
 static const bsp_audio_desc_t s_desc = {
     .present = true,
     .has_playback = true,
@@ -54,10 +56,11 @@ bsp_audio_config_t bsp_audio_default_config(void)
     };
 }
 
-esp_err_t bsp_audio_open(const bsp_audio_config_t *config, bsp_audio_handle_t *out_handle)
+esp_err_t bsp_audio_open(const bsp_audio_config_t *config, bsp_audio_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
-    *out_handle = NULL;
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_audio_open, ESP_ERR_INVALID_STATE, TAG, "audio already open");
+    *handle_out = NULL;
 
     esp_err_t ret = ESP_OK;
     struct bsp_audio_s *handle = calloc(1, sizeof(*handle));
@@ -82,7 +85,8 @@ esp_err_t bsp_audio_open(const bsp_audio_config_t *config, bsp_audio_handle_t *o
 
     ESP_GOTO_ON_ERROR(bsp_audio_common_init(handle->common, bus, &s_pins, config), err, TAG, "common init failed");
 
-    *out_handle = handle;
+    s_audio_open = true;
+    *handle_out = handle;
     return ESP_OK;
 
 err:
@@ -95,6 +99,7 @@ err:
 esp_err_t bsp_audio_close(bsp_audio_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    s_audio_open = false;
     esp_err_t first_err = ESP_OK;
 
     if (handle->common != NULL) {
@@ -149,10 +154,10 @@ esp_err_t bsp_audio_play_set_volume(bsp_audio_handle_t handle, int volume)
     return bsp_audio_common_play_set_volume(handle->common, volume);
 }
 
-esp_err_t bsp_audio_play_write(bsp_audio_handle_t handle, const void *data, size_t len, size_t *out_written, uint32_t timeout_ms)
+esp_err_t bsp_audio_play_write(bsp_audio_handle_t handle, const void *data, size_t len, size_t *written_out, uint32_t timeout_ms)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    return bsp_audio_common_play_write(handle->common, data, len, out_written, timeout_ms);
+    return bsp_audio_common_play_write(handle->common, data, len, written_out, timeout_ms);
 }
 
 esp_err_t bsp_audio_record_start(bsp_audio_handle_t handle)
@@ -173,8 +178,8 @@ esp_err_t bsp_audio_record_set_gain(bsp_audio_handle_t handle, float gain_db)
     return bsp_audio_common_record_set_gain(handle->common, gain_db);
 }
 
-esp_err_t bsp_audio_record_read(bsp_audio_handle_t handle, void *data, size_t len, size_t *out_read, uint32_t timeout_ms)
+esp_err_t bsp_audio_record_read(bsp_audio_handle_t handle, void *data, size_t len, size_t *read_out, uint32_t timeout_ms)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    return bsp_audio_common_record_read(handle->common, data, len, out_read, timeout_ms);
+    return bsp_audio_common_record_read(handle->common, data, len, read_out, timeout_ms);
 }

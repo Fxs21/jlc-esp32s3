@@ -27,11 +27,11 @@ static esp_err_t read_reg(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *val
     return i2c_master_transmit_receive(dev, &reg, sizeof(reg), value, sizeof(*value), TCA9554_TIMEOUT_MS);
 }
 
-esp_err_t tca9554_open(const tca9554_config_t *cfg, tca9554_handle_t *out_handle)
+esp_err_t tca9554_open(const tca9554_config_t *cfg, tca9554_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "cfg is null");
     ESP_RETURN_ON_FALSE(cfg->dev != NULL, ESP_ERR_INVALID_ARG, TAG, "dev is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
 
     struct tca9554_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -50,7 +50,7 @@ esp_err_t tca9554_open(const tca9554_config_t *cfg, tca9554_handle_t *out_handle
 
     handle->dev = cfg->dev;
     handle->output_shadow = cfg->output_default;
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 }
 

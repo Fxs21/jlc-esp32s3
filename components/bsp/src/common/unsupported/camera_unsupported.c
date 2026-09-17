@@ -9,10 +9,10 @@ const bsp_camera_desc_t *bsp_camera_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_camera_open(bsp_camera_handle_t *out_handle)
+esp_err_t bsp_camera_open(bsp_camera_handle_t *handle_out)
 {
-    if (out_handle != NULL) {
-        *out_handle = NULL;
+    if (handle_out != NULL) {
+        *handle_out = NULL;
     }
     return ESP_ERR_NOT_SUPPORTED;
 }
@@ -23,10 +23,10 @@ esp_err_t bsp_camera_close(bsp_camera_handle_t handle)
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-esp_err_t bsp_camera_capture(bsp_camera_handle_t handle, bsp_camera_frame_t *out_frame)
+esp_err_t bsp_camera_capture(bsp_camera_handle_t handle, bsp_camera_frame_t *frame_out)
 {
     (void)handle;
-    (void)out_frame;
+    (void)frame_out;
     return ESP_ERR_NOT_SUPPORTED;
 }
 

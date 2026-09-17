@@ -16,6 +16,8 @@ struct bsp_touch_s {
     bool i2c_acquired;
 };
 
+static bool s_touch_open;
+
 static const bsp_touch_desc_t s_desc = {
     .present = true,
     .max_points = TOUCH_MAX_POINTS,
@@ -28,10 +30,11 @@ const bsp_touch_desc_t *bsp_touch_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_touch_open(bsp_touch_handle_t *out_handle)
+esp_err_t bsp_touch_open(bsp_touch_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
-    *out_handle = NULL;
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_touch_open, ESP_ERR_INVALID_STATE, TAG, "touch already open");
+    *handle_out = NULL;
     esp_err_t ret = ESP_OK;
 
     struct bsp_touch_s *handle = calloc(1, sizeof(*handle));
@@ -60,7 +63,8 @@ esp_err_t bsp_touch_open(bsp_touch_handle_t *out_handle)
         goto err;
     }
 
-    *out_handle = handle;
+    s_touch_open = true;
+    *handle_out = handle;
     return ESP_OK;
 
 err:
@@ -73,6 +77,7 @@ err:
 esp_err_t bsp_touch_close(bsp_touch_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    s_touch_open = false;
     esp_err_t first_err = ESP_OK;
 
     if (handle->driver != NULL) {

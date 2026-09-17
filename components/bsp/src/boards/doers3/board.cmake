@@ -7,12 +7,17 @@ set(BSP_BOARD_SRCS
     "src/boards/doers3/gnss.c"
     "src/boards/doers3/imu.c"
     "src/boards/doers3/audio.c"
-    "src/common/unsupported/pmu_unsupported.c"
     "src/boards/doers3/internal/doers3_ioexp.c"
+)
+
+set(BSP_BOARD_UNSUPPORTED
+    "pmu"
 )
 
 if(CONFIG_BSP_ENABLE_CAMERA)
     list(APPEND BSP_BOARD_SRCS "src/boards/doers3/camera.c")
+else()
+    list(APPEND BSP_BOARD_UNSUPPORTED "camera")
 endif()
 
 set(BSP_BOARD_DRIVERS

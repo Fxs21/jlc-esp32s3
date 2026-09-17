@@ -48,7 +48,7 @@ docs/                 # 设计,状态,接入指南和硬件事实
 - 不做 runtime board detect,不做 board database,不做通用 bus HAL.
 - 板级差异只存在于 `components/bsp/src/boards/<board>/`.
 
-完整规则见 `docs/bsp_design.md`.
+完整设计说明见 `docs/bsp_design.md`.
 
 ## 5. 快速开始
 
@@ -86,7 +86,7 @@ CHECK_BUILD=1 tools/check.sh  # 追加 idf.py build
 |---|---|
 | `docs/bsp/capabilities.md` | 双板能力矩阵和 public API 一览 |
 | `docs/bsp/status.md` | 当前进度,已验证项,暂停项和下一步 |
-| `docs/bsp_design.md` | BSP 长期设计边界和 API 原则 |
+| `docs/bsp_design.md` | BSP 结构,分层职责和 API 语义 |
 | `docs/bsp/porting-guide.md` | 新增 board port 的接入指南 |
 | `docs/hw/boards/doers3_truth_table.md` | DoerS3 硬件事实 |
 | `docs/hw/boards/auras3_truth_table.md` | AuraS3 硬件事实 |

@@ -18,6 +18,8 @@ struct bsp_ui_s {
     lv_indev_t *lv_indev;
 };
 
+static bool s_ui_open;
+
 static uint32_t lv_tick_cb(void)
 {
     return (uint32_t)(esp_timer_get_time() / 1000);
@@ -44,10 +46,11 @@ static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_PRESSED;
 }
 
-esp_err_t bsp_ui_open(bsp_ui_handle_t *out_handle)
+esp_err_t bsp_ui_open(bsp_ui_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, BSP_UI_TAG, "out_handle is null");
-    *out_handle = NULL;
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, BSP_UI_TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_ui_open, ESP_ERR_INVALID_STATE, BSP_UI_TAG, "ui already open");
+    *handle_out = NULL;
     esp_err_t ret = ESP_OK;
 
     struct bsp_ui_s *handle = calloc(1, sizeof(*handle));
@@ -84,7 +87,8 @@ esp_err_t bsp_ui_open(bsp_ui_handle_t *out_handle)
                           "backlight open failed");
     }
 
-    *out_handle = handle;
+    s_ui_open = true;
+    *handle_out = handle;
     return ESP_OK;
 
 err:
@@ -94,12 +98,12 @@ err:
     return ret;
 }
 
-esp_err_t bsp_ui_process(bsp_ui_handle_t handle, uint32_t *out_delay_ms)
+esp_err_t bsp_ui_process(bsp_ui_handle_t handle, uint32_t *delay_ms_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, BSP_UI_TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_delay_ms != NULL, ESP_ERR_INVALID_ARG, BSP_UI_TAG, "out_delay_ms is null");
+    ESP_RETURN_ON_FALSE(delay_ms_out != NULL, ESP_ERR_INVALID_ARG, BSP_UI_TAG, "delay_ms_out is null");
 
-    *out_delay_ms = lv_timer_handler();
+    *delay_ms_out = lv_timer_handler();
     return ESP_OK;
 }
 
@@ -123,6 +127,7 @@ esp_err_t bsp_ui_set_backlight(bsp_ui_handle_t handle, uint8_t percent)
 esp_err_t bsp_ui_close(bsp_ui_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, BSP_UI_TAG, "handle is null");
+    s_ui_open = false;
 
     if (handle->lv_indev != NULL) {
         lv_indev_delete(handle->lv_indev);

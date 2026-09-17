@@ -28,7 +28,7 @@ typedef struct {
     bool no_dac_ref;
 } es8311_config_t;
 
-esp_err_t es8311_open(const es8311_config_t *cfg, es8311_handle_t *out_handle);
+esp_err_t es8311_open(const es8311_config_t *cfg, es8311_handle_t *handle_out);
 esp_err_t es8311_close(es8311_handle_t handle);
 esp_err_t es8311_set_format(es8311_handle_t handle, uint32_t sample_rate, uint8_t bits_per_sample);
 esp_err_t es8311_enable(es8311_handle_t handle, bool enable);

@@ -70,33 +70,33 @@ static esp_err_t parse_segments(const char *path,
 static esp_err_t write_segments(const char **segments,
                                 const size_t *segment_lens,
                                 size_t segment_count,
-                                char *out_path,
-                                size_t out_size)
+                                char *path_out,
+                                size_t size_out)
 {
-    ESP_RETURN_ON_FALSE(out_path != NULL, ESP_ERR_INVALID_ARG, TAG, "out_path is null");
-    ESP_RETURN_ON_FALSE(out_size >= 2, ESP_ERR_INVALID_ARG, TAG, "out_size is too small");
+    ESP_RETURN_ON_FALSE(path_out != NULL, ESP_ERR_INVALID_ARG, TAG, "path_out is null");
+    ESP_RETURN_ON_FALSE(size_out >= 2, ESP_ERR_INVALID_ARG, TAG, "size_out is too small");
 
-    size_t out_len = 0;
-    out_path[out_len++] = '/';
+    size_t len_out = 0;
+    path_out[len_out++] = '/';
     for (size_t i = 0; i < segment_count; i++) {
         if (i > 0) {
-            ESP_RETURN_ON_FALSE((out_len + 1) < out_size, ESP_ERR_INVALID_SIZE, TAG, "path too long");
-            out_path[out_len++] = '/';
+            ESP_RETURN_ON_FALSE((len_out + 1) < size_out, ESP_ERR_INVALID_SIZE, TAG, "path too long");
+            path_out[len_out++] = '/';
         }
         const size_t seg_len = segment_lens[i];
-        ESP_RETURN_ON_FALSE((out_len + seg_len) < out_size, ESP_ERR_INVALID_SIZE, TAG, "path too long");
-        memcpy(&out_path[out_len], segments[i], seg_len);
-        out_len += seg_len;
+        ESP_RETURN_ON_FALSE((len_out + seg_len) < size_out, ESP_ERR_INVALID_SIZE, TAG, "path too long");
+        memcpy(&path_out[len_out], segments[i], seg_len);
+        len_out += seg_len;
     }
-    out_path[out_len] = '\0';
+    path_out[len_out] = '\0';
     return ESP_OK;
 }
 
-esp_err_t shell_path_resolve(const char *cwd, const char *path, char *out_path, size_t out_size)
+esp_err_t shell_path_resolve(const char *cwd, const char *path, char *path_out, size_t size_out)
 {
     ESP_RETURN_ON_FALSE(cwd != NULL, ESP_ERR_INVALID_ARG, TAG, "cwd is null");
     ESP_RETURN_ON_FALSE(path != NULL, ESP_ERR_INVALID_ARG, TAG, "path is null");
-    ESP_RETURN_ON_FALSE(out_path != NULL, ESP_ERR_INVALID_ARG, TAG, "out_path is null");
+    ESP_RETURN_ON_FALSE(path_out != NULL, ESP_ERR_INVALID_ARG, TAG, "path_out is null");
     ESP_RETURN_ON_FALSE(cwd[0] == '/', ESP_ERR_INVALID_ARG, TAG, "cwd must be absolute");
 
     const char *segments[64] = {0};
@@ -113,5 +113,5 @@ esp_err_t shell_path_resolve(const char *cwd, const char *path, char *out_path, 
                             TAG, "parse relative path failed");
     }
 
-    return write_segments(segments, segment_lens, segment_count, out_path, out_size);
+    return write_segments(segments, segment_lens, segment_count, path_out, size_out);
 }

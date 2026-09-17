@@ -52,13 +52,13 @@ typedef struct {
     float temperature_c;
 } axp2101_status_t;
 
-esp_err_t axp2101_open(const axp2101_config_t *cfg, axp2101_handle_t *out_handle);
+esp_err_t axp2101_open(const axp2101_config_t *cfg, axp2101_handle_t *handle_out);
 esp_err_t axp2101_close(axp2101_handle_t handle);
 esp_err_t axp2101_enable_adc(axp2101_handle_t handle);
 esp_err_t axp2101_disable_ts_adc(axp2101_handle_t handle);
 esp_err_t axp2101_enable_default_irqs(axp2101_handle_t handle);
-esp_err_t axp2101_get_status(axp2101_handle_t handle, axp2101_status_t *out_status);
-esp_err_t axp2101_get_events(axp2101_handle_t handle, axp2101_event_t *out_events, bool clear);
+esp_err_t axp2101_get_status(axp2101_handle_t handle, axp2101_status_t *status_out);
+esp_err_t axp2101_get_events(axp2101_handle_t handle, axp2101_event_t *events_out, bool clear);
 
 #ifdef __cplusplus
 }

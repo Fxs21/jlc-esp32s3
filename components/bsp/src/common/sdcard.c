@@ -19,6 +19,8 @@ struct bsp_sdcard_s {
     char mount_point[32];
 };
 
+static bool s_sdcard_open;
+
 static const bsp_sdcard_desc_t s_desc = {
     .present = true,
 };
@@ -46,18 +48,24 @@ static bsp_sdcard_type_t get_type(const sdmmc_card_t *card)
     return capacity_bytes < (32ULL * 1024ULL * 1024ULL * 1024ULL) ? BSP_SDCARD_TYPE_SDHC : BSP_SDCARD_TYPE_SDXC;
 }
 
-esp_err_t bsp_sdcard_open(bsp_sdcard_handle_t *out_handle)
+esp_err_t bsp_sdcard_open(bsp_sdcard_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_sdcard_open, ESP_ERR_INVALID_STATE, TAG, "sdcard already open");
+    *handle_out = NULL;
+
     struct bsp_sdcard_s *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
-    *out_handle = handle;
+
+    s_sdcard_open = true;
+    *handle_out = handle;
     return ESP_OK;
 }
 
 esp_err_t bsp_sdcard_close(bsp_sdcard_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    s_sdcard_open = false;
     esp_err_t first_err = ESP_OK;
     if (handle->card != NULL) {
         first_err = bsp_sdcard_unmount(handle);
@@ -122,45 +130,45 @@ esp_err_t bsp_sdcard_unmount(bsp_sdcard_handle_t handle)
     return ESP_OK;
 }
 
-esp_err_t bsp_sdcard_get_mount_point(bsp_sdcard_handle_t handle, const char **out_mount_point)
+esp_err_t bsp_sdcard_get_mount_point(bsp_sdcard_handle_t handle, const char **mount_point_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_mount_point != NULL, ESP_ERR_INVALID_ARG, TAG, "out_mount_point is null");
+    ESP_RETURN_ON_FALSE(mount_point_out != NULL, ESP_ERR_INVALID_ARG, TAG, "mount_point_out is null");
     ESP_RETURN_ON_FALSE(handle->mount_point[0] != '\0', ESP_ERR_INVALID_STATE, TAG, "not mounted");
-    *out_mount_point = handle->mount_point;
+    *mount_point_out = handle->mount_point;
     return ESP_OK;
 }
 
-esp_err_t bsp_sdcard_get_info(bsp_sdcard_handle_t handle, bsp_sdcard_info_t *out_info)
+esp_err_t bsp_sdcard_get_info(bsp_sdcard_handle_t handle, bsp_sdcard_info_t *info_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_info != NULL, ESP_ERR_INVALID_ARG, TAG, "out_info is null");
-    memset(out_info, 0, sizeof(*out_info));
+    ESP_RETURN_ON_FALSE(info_out != NULL, ESP_ERR_INVALID_ARG, TAG, "info_out is null");
+    memset(info_out, 0, sizeof(*info_out));
     if (handle->card == NULL) {
         return ESP_OK;
     }
     const sdmmc_card_t *card = handle->card;
-    out_info->mounted = true;
-    out_info->type = get_type(card);
-    out_info->capacity_bytes = (uint64_t)card->csd.capacity * (uint64_t)card->csd.sector_size;
-    out_info->sector_count = (uint64_t)card->csd.capacity;
-    out_info->sector_size = (uint32_t)card->csd.sector_size;
-    out_info->bus_width = 1;
-    out_info->target_freq_khz = SDMMC_FREQ_DEFAULT;
-    out_info->real_freq_khz = card->real_freq_khz;
-    memcpy(out_info->name, card->cid.name, sizeof(card->cid.name));
-    out_info->name[sizeof(card->cid.name)] = '\0';
+    info_out->mounted = true;
+    info_out->type = get_type(card);
+    info_out->capacity_bytes = (uint64_t)card->csd.capacity * (uint64_t)card->csd.sector_size;
+    info_out->sector_count = (uint64_t)card->csd.capacity;
+    info_out->sector_size = (uint32_t)card->csd.sector_size;
+    info_out->bus_width = 1;
+    info_out->target_freq_khz = SDMMC_FREQ_DEFAULT;
+    info_out->real_freq_khz = card->real_freq_khz;
+    memcpy(info_out->name, card->cid.name, sizeof(card->cid.name));
+    info_out->name[sizeof(card->cid.name)] = '\0';
     return ESP_OK;
 }
 
-esp_err_t bsp_sdcard_get_fs_info(bsp_sdcard_handle_t handle, bsp_sdcard_fs_info_t *out_info)
+esp_err_t bsp_sdcard_get_fs_info(bsp_sdcard_handle_t handle, bsp_sdcard_fs_info_t *info_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_info != NULL, ESP_ERR_INVALID_ARG, TAG, "out_info is null");
-    memset(out_info, 0, sizeof(*out_info));
+    ESP_RETURN_ON_FALSE(info_out != NULL, ESP_ERR_INVALID_ARG, TAG, "info_out is null");
+    memset(info_out, 0, sizeof(*info_out));
     if (handle->card == NULL || handle->mount_point[0] == '\0') {
         return ESP_OK;
     }
-    out_info->mounted = true;
-    return esp_vfs_fat_info(handle->mount_point, &out_info->total_bytes, &out_info->free_bytes);
+    info_out->mounted = true;
+    return esp_vfs_fat_info(handle->mount_point, &info_out->total_bytes, &info_out->free_bytes);
 }

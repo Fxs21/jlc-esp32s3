@@ -144,11 +144,11 @@ esp_err_t auras3_ioexp_set_pin(uint8_t pin, bool level)
     return tca9554_write_pin(s_chip, pin, level);
 }
 
-esp_err_t auras3_ioexp_get_pin(uint8_t pin, bool *out_level)
+esp_err_t auras3_ioexp_get_pin(uint8_t pin, bool *level_out)
 {
-    ESP_RETURN_ON_FALSE(out_level != NULL, ESP_ERR_INVALID_ARG, TAG, "out_level is null");
+    ESP_RETURN_ON_FALSE(level_out != NULL, ESP_ERR_INVALID_ARG, TAG, "level_out is null");
     if (s_chip == NULL) {
         return ESP_ERR_INVALID_STATE;
     }
-    return tca9554_read_pin(s_chip, pin, out_level);
+    return tca9554_read_pin(s_chip, pin, level_out);
 }

@@ -77,12 +77,12 @@ static int shell_find_mount_index(const char *mount_path)
     return -1;
 }
 
-static esp_err_t shell_normalize_mount_path(const char *mount_path, char *out_path, size_t out_size)
+static esp_err_t shell_normalize_mount_path(const char *mount_path, char *path_out, size_t size_out)
 {
     ESP_RETURN_ON_FALSE(mount_path != NULL, ESP_ERR_INVALID_ARG, TAG, "mount path is null");
-    ESP_RETURN_ON_FALSE(out_path != NULL, ESP_ERR_INVALID_ARG, TAG, "out path is null");
+    ESP_RETURN_ON_FALSE(path_out != NULL, ESP_ERR_INVALID_ARG, TAG, "out path is null");
     ESP_RETURN_ON_FALSE(mount_path[0] == '/', ESP_ERR_INVALID_ARG, TAG, "mount path must be absolute");
-    return shell_path_resolve(SHELL_ROOT_PATH, mount_path, out_path, out_size);
+    return shell_path_resolve(SHELL_ROOT_PATH, mount_path, path_out, size_out);
 }
 
 shell_cfg_t shell_default_config(void)

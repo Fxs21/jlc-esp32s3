@@ -27,7 +27,7 @@ typedef struct {
     bool mirror_y;
 } cst9217_config_t;
 
-esp_err_t cst9217_open(const cst9217_config_t *config, cst9217_handle_t *out_handle);
+esp_err_t cst9217_open(const cst9217_config_t *config, cst9217_handle_t *handle_out);
 esp_err_t cst9217_close(cst9217_handle_t handle);
 esp_err_t cst9217_read(cst9217_handle_t handle,
                        bsp_touch_point_t *points,

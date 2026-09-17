@@ -19,6 +19,8 @@ struct bsp_camera_s {
     bool camera_started;
 };
 
+static bool s_camera_open;
+
 static const bsp_camera_desc_t s_desc = {
     .present = true,
     .width = DOERS3_CAMERA_WIDTH,
@@ -77,10 +79,11 @@ const bsp_camera_desc_t *bsp_camera_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_camera_open(bsp_camera_handle_t *out_handle)
+esp_err_t bsp_camera_open(bsp_camera_handle_t *handle_out)
 {
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
-    *out_handle = NULL;
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
+    ESP_RETURN_ON_FALSE(!s_camera_open, ESP_ERR_INVALID_STATE, TAG, "camera already open");
+    *handle_out = NULL;
     esp_err_t ret = ESP_OK;
 
     struct bsp_camera_s *handle = calloc(1, sizeof(*handle));
@@ -105,7 +108,8 @@ esp_err_t bsp_camera_open(bsp_camera_handle_t *out_handle)
     }
     handle->camera_started = true;
 
-    *out_handle = handle;
+    s_camera_open = true;
+    *handle_out = handle;
     return ESP_OK;
 
 err:
@@ -118,6 +122,7 @@ err:
 esp_err_t bsp_camera_close(bsp_camera_handle_t handle)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    s_camera_open = false;
     esp_err_t first_err = ESP_OK;
 
     if (handle->frame != NULL) {
@@ -142,23 +147,23 @@ esp_err_t bsp_camera_close(bsp_camera_handle_t handle)
     return first_err;
 }
 
-esp_err_t bsp_camera_capture(bsp_camera_handle_t handle, bsp_camera_frame_t *out_frame)
+esp_err_t bsp_camera_capture(bsp_camera_handle_t handle, bsp_camera_frame_t *frame_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_frame != NULL, ESP_ERR_INVALID_ARG, TAG, "out_frame is null");
+    ESP_RETURN_ON_FALSE(frame_out != NULL, ESP_ERR_INVALID_ARG, TAG, "frame_out is null");
     ESP_RETURN_ON_FALSE(handle->frame == NULL, ESP_ERR_INVALID_STATE, TAG, "frame not released");
 
     camera_fb_t *frame = esp_camera_fb_get();
     ESP_RETURN_ON_FALSE(frame != NULL, ESP_FAIL, TAG, "capture failed");
 
     handle->frame = frame;
-    out_frame->data = frame->buf;
-    out_frame->len = frame->len;
-    out_frame->width = (uint16_t)frame->width;
-    out_frame->height = (uint16_t)frame->height;
-    out_frame->pixel_format = BSP_CAMERA_PIXEL_FORMAT_RGB565;
-    out_frame->stride_bytes = (uint32_t)frame->width * 2;
-    out_frame->timestamp_us = (uint64_t)esp_timer_get_time();
+    frame_out->data = frame->buf;
+    frame_out->len = frame->len;
+    frame_out->width = (uint16_t)frame->width;
+    frame_out->height = (uint16_t)frame->height;
+    frame_out->pixel_format = BSP_CAMERA_PIXEL_FORMAT_RGB565;
+    frame_out->stride_bytes = (uint32_t)frame->width * 2;
+    frame_out->timestamp_us = (uint64_t)esp_timer_get_time();
     return ESP_OK;
 }
 

@@ -23,8 +23,8 @@ typedef struct {
 
 typedef bool (*bsp_display_transfer_done_cb_t)(void *user_ctx);
 
-// On failure, *out_handle is set to NULL after out_handle is validated.
-esp_err_t bsp_display_open(bsp_display_handle_t *out_handle);
+// On failure, *handle_out is set to NULL after handle_out is validated.
+esp_err_t bsp_display_open(bsp_display_handle_t *handle_out);
 esp_err_t bsp_display_close(bsp_display_handle_t handle);
 const bsp_display_info_t *bsp_display_get_info(bsp_display_handle_t handle);
 

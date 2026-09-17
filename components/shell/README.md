@@ -35,15 +35,19 @@
 - `touch read`: 打开 touch, 读取一次触点, 然后关闭
 - `gnss read [count] [timeout_ms]`: 打开 GNSS, 连续读取 `count` 条 NMEA 语句 (`timeout_ms` 单次超时), 然后关闭; count 默认 1, 最大 100
 - `backlight set <percent>`: 设置背光百分比, 范围 `0..100`
-- `sd info [mount_path]` / `sd fs [mount_path]`: 打印 SD/FAT 文件系统容量信息
+- `sd mount [mount_path]`: 挂载 SD 卡; shell 持有 handle 直到 `sd umount`
+- `sd umount`: 卸载 SD 卡并释放 handle
+- `sd info`: 打印已挂载卡片的完整信息; 需先 `sd mount`, 不会隐式挂载
+- `sd fs [mount_path]`: 打印文件系统容量信息
 
 设计原则: shell 只保留简单 I2C/UART 外设 (IMU/Touch/GNSS) 和通用调试命令 (backlight/SD). display, camera, audio, PMU 等复杂外设应使用对应的 `test_app` 验证.
 
 ## 2. 路径与挂载模型
 
 - shell 的根目录固定为 `/`, 它是一个虚拟根.
-- 在 `/` 下执行 `ls` 时, 显示的是已注册挂载点, 例如 `sdcard/`.
-- 真实文件系统路径由业务侧先完成挂载, 例如 `bsp_sdcard_mount(sd, "/sdcard")`, 再通过 `shell_mount_add("/sdcard")` 暴露给 shell.
+- 在 `/` 下执行 `ls` 时, 显示的是已注册挂载点, 例如 `sdcard/`; 注册只表示"候选挂载点", 不要求文件系统此刻已挂载.
+- SD 卡的挂载生命周期由 shell 的 `sd` 命令拥有: `sd mount` 挂载, `sd umount` 释放, `sd info` 只报告已有挂载.
+- 如果业务侧自己持有 SD handle, `sd mount` 会提示 `card handle already open by app`; 此时可改用 `sd fs` 查看文件系统统计.
 
 路径规则:
 
@@ -63,27 +67,23 @@
 ## 4. 快速接入示例
 
 ```c
-#include "bsp_sdcard.h"
 #include "shell.h"
 
 void app_main(void)
 {
-    bsp_sdcard_handle_t sd = NULL;
-    ESP_ERROR_CHECK(bsp_sdcard_open(&sd));
-    ESP_ERROR_CHECK(bsp_sdcard_mount(sd, "/sdcard"));
-
+    // shell_init() 之后挂载表只读, 路径注册必须在 init 前完成.
     ESP_ERROR_CHECK(shell_mount_add("/sdcard"));
 
     shell_cfg_t shell_cfg = shell_default_config();
     shell_cfg.prompt = "jlc$ ";
-    shell_cfg.initial_path = "/sdcard";
+    shell_cfg.initial_path = "/";
     shell_cfg.enable_bsp_commands = true;
     ESP_ERROR_CHECK(shell_init(&shell_cfg));
 }
 ```
 
 可直接参考可运行示例: `components/bsp/test_app/shell/main/test_shell.c`.
-该示例会打印当前编译进来的 BSP board 名称; 如果当前 board 的 SD 尚未实现, 会自动从 `/` 启动 shell, 便于先运行 `i2c scan` 等无文件系统依赖的诊断命令.
+该示例打印当前编译进来的 BSP board 名称, 注册 `/sdcard` 路径后从 `/` 启动 shell; SD 卡在运行 `sd mount` 时挂载, 未插卡不影响 `i2c scan` 等其它命令.
 
 ### 多板型配套运行
 

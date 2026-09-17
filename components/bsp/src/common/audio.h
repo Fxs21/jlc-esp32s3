@@ -49,7 +49,7 @@ esp_err_t bsp_audio_common_play_stop(bsp_audio_common_t *c, bsp_audio_pa_fn pa);
 esp_err_t bsp_audio_common_play_set_volume(bsp_audio_common_t *c, int volume);
 esp_err_t bsp_audio_common_play_write(bsp_audio_common_t *c,
                                       const void *data, size_t len,
-                                      size_t *out_written, uint32_t timeout_ms);
+                                      size_t *written_out, uint32_t timeout_ms);
 
 // Record.
 esp_err_t bsp_audio_common_record_start(bsp_audio_common_t *c);
@@ -57,7 +57,7 @@ esp_err_t bsp_audio_common_record_stop(bsp_audio_common_t *c);
 esp_err_t bsp_audio_common_record_set_gain(bsp_audio_common_t *c, float gain_db);
 esp_err_t bsp_audio_common_record_read(bsp_audio_common_t *c,
                                        void *data, size_t len,
-                                       size_t *out_read, uint32_t timeout_ms);
+                                       size_t *read_out, uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }

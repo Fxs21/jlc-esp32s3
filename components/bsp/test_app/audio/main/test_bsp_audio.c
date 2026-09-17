@@ -13,6 +13,7 @@
 #define PLAY_VOLUME 60
 #define RECORD_ROUNDS 20
 #define FRAME_SAMPLES 256
+#define IO_TIMEOUT_MS 1000
 #define MIN_RECORD_RMS 1.0
 #define PI_F 3.14159265358979323846f
 
@@ -101,9 +102,15 @@ static esp_err_t run_playback_test(void)
         }
         fill_tone(buf, frames, cfg.sample_rate, 2, &phase);
         size_t bytes = frames * 2 * sizeof(int16_t);
-        size_t written = 0;
-        ESP_RETURN_ON_ERROR(bsp_audio_play_write(audio, buf, bytes, &written, UINT32_MAX), TAG, "play tone failed");
-        ESP_RETURN_ON_FALSE(written == bytes, ESP_ERR_TIMEOUT, TAG, "short playback write");
+        size_t sent = 0;
+        while (sent < bytes) {
+            size_t written = 0;
+            ESP_RETURN_ON_ERROR(bsp_audio_play_write(audio, (const uint8_t *)buf + sent, bytes - sent,
+                                                     &written, IO_TIMEOUT_MS),
+                                TAG, "play tone failed");
+            ESP_RETURN_ON_FALSE(written > 0, ESP_ERR_TIMEOUT, TAG, "no playback progress");
+            sent += written;
+        }
     }
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(bsp_audio_play_stop(audio));
@@ -133,7 +140,7 @@ static esp_err_t run_record_test(void)
     for (int i = 0; i < RECORD_ROUNDS; ++i) {
         size_t bytes = FRAME_SAMPLES * 2 * sizeof(int16_t);
         size_t bytes_read = 0;
-        ESP_RETURN_ON_ERROR(bsp_audio_record_read(audio, buf, bytes, &bytes_read, UINT32_MAX), TAG,
+        ESP_RETURN_ON_ERROR(bsp_audio_record_read(audio, buf, bytes, &bytes_read, IO_TIMEOUT_MS), TAG,
                             "record read failed");
         ESP_RETURN_ON_FALSE(bytes_read % (2 * sizeof(int16_t)) == 0,
                             ESP_FAIL, TAG, "unaligned record read");

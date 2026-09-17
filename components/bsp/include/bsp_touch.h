@@ -28,8 +28,8 @@ typedef struct {
 
 const bsp_touch_desc_t *bsp_touch_get_desc(void);
 
-// On failure, *out_handle is set to NULL after out_handle is validated.
-esp_err_t bsp_touch_open(bsp_touch_handle_t *out_handle);
+// On failure, *handle_out is set to NULL after handle_out is validated.
+esp_err_t bsp_touch_open(bsp_touch_handle_t *handle_out);
 esp_err_t bsp_touch_close(bsp_touch_handle_t handle);
 esp_err_t bsp_touch_read(bsp_touch_handle_t handle,
                          bsp_touch_point_t *points,

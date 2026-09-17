@@ -10,7 +10,6 @@
 #include "bsp_board.h"
 #include "bsp_gnss.h"
 #include "bsp_imu.h"
-#include "bsp_pmu.h"
 #include "bsp_sdcard.h"
 #include "bsp_touch.h"
 #include "esp_check.h"
@@ -27,6 +26,7 @@
 #define GNSS_DEFAULT_TIMEOUT_MS 1000
 #define SD_DEFAULT_PATH "/sdcard"
 static bsp_backlight_handle_t s_backlight;
+static bsp_sdcard_handle_t s_sd;
 
 
 static const char *yes_no(bool value)
@@ -34,9 +34,9 @@ static const char *yes_no(bool value)
     return value ? "yes" : "no";
 }
 
-static bool parse_u32(const char *text, uint32_t min_value, uint32_t max_value, uint32_t *out_value)
+static bool parse_u32(const char *text, uint32_t min_value, uint32_t max_value, uint32_t *value_out)
 {
-    if (text == NULL || out_value == NULL) {
+    if (text == NULL || value_out == NULL) {
         return false;
     }
 
@@ -47,7 +47,7 @@ static bool parse_u32(const char *text, uint32_t min_value, uint32_t max_value, 
         return false;
     }
 
-    *out_value = (uint32_t)value;
+    *value_out = (uint32_t)value;
     return true;
 }
 
@@ -119,6 +119,10 @@ static int cmd_bsp(int argc, char **argv)
     const bsp_imu_desc_t *imu = bsp_imu_get_desc();
     const bsp_gnss_desc_t *gnss = bsp_gnss_get_desc();
     const bsp_sdcard_desc_t *sdcard = bsp_sdcard_get_desc();
+
+    if (board != NULL) {
+        printf("board: %s (id=%d)\n", board->name, (int)board->id);
+    }
     printf("touch: present=%s", yes_no(touch != NULL && touch->present));
     if (touch != NULL && touch->present) {
         printf(" max_points=%u range=%ux%u", (unsigned)touch->max_points,
@@ -179,10 +183,10 @@ static int cmd_imu(int argc, char **argv)
         }
         samples++;
 
-        printf("accel_mps2: %.3f %.3f %.3f  gyro_rads: %.3f %.3f %.3f  temp_c: %.2f  ts_ms: %" PRIu32 "\n",
+        printf("accel_mps2: %.3f %.3f %.3f  gyro_rads: %.3f %.3f %.3f  temp_c: %.2f  ts_ticks: %" PRIu32 "\n",
                data.accel_mps2_x, data.accel_mps2_y, data.accel_mps2_z,
                data.gyro_rads_x, data.gyro_rads_y, data.gyro_rads_z,
-               data.temperature_c, data.timestamp_ms);
+               data.temperature_c, data.timestamp_ticks);
 
         if (count > 1) {
             vTaskDelay(pdMS_TO_TICKS(100));
@@ -291,9 +295,9 @@ static bool nmea_is_type(const char *line, const char *type)
 }
 
 static bool nmea_get_field(const char *line, int field_index,
-                           char *out, size_t out_size)
+                           char *field_out, size_t size_out)
 {
-    if (line == NULL || out == NULL || out_size == 0
+    if (line == NULL || field_out == NULL || size_out == 0
         || field_index < 0 || line[0] != '$') {
         return false;
     }
@@ -304,11 +308,11 @@ static bool nmea_get_field(const char *line, int field_index,
         if (*p == ',' || *p == '*' || *p == '\0') {
             if (current == field_index) {
                 size_t len = (size_t)(p - start);
-                if (len >= out_size) {
-                    len = out_size - 1;
+                if (len >= size_out) {
+                    len = size_out - 1;
                 }
-                memcpy(out, start, len);
-                out[len] = '\0';
+                memcpy(field_out, start, len);
+                field_out[len] = '\0';
                 return true;
             }
             if (*p == '*' || *p == '\0') {
@@ -322,9 +326,9 @@ static bool nmea_get_field(const char *line, int field_index,
 }
 
 static bool nmea_parse_lat_lon(const char *value, const char *hemisphere,
-                               double *out_deg)
+                               double *deg_out)
 {
-    if (value == NULL || hemisphere == NULL || out_deg == NULL
+    if (value == NULL || hemisphere == NULL || deg_out == NULL
         || value[0] == '\0' || hemisphere[0] == '\0') {
         return false;
     }
@@ -337,7 +341,7 @@ static bool nmea_parse_lat_lon(const char *value, const char *hemisphere,
         result = -result;
     }
 
-    *out_deg = result;
+    *deg_out = result;
     return true;
 }
 
@@ -498,15 +502,19 @@ static int cmd_gnss(int argc, char **argv)
     }
 
     uint32_t reads = 0;
+    size_t bytes_total = 0;
     nmea_state_t nmea = {0};
     uint8_t buf[GNSS_READ_BUF_SIZE] = {0};
 
     for (uint32_t i = 0; i < count; i++) {
         size_t read_len = 0;
         ret = bsp_gnss_read(gnss, buf, sizeof(buf), &read_len, timeout_ms);
-        if (ret != ESP_OK) {
+        if (ret != ESP_OK && ret != ESP_ERR_TIMEOUT) {
             printf("gnss read failed: %s\n", esp_err_to_name(ret));
             break;
+        }
+        if (ret == ESP_ERR_TIMEOUT) {
+            read_len = 0;
         }
         reads++;
 
@@ -515,6 +523,7 @@ static int cmd_gnss(int argc, char **argv)
         } else {
             printf("[%u] %u bytes\n", (unsigned)i, (unsigned)read_len);
             nmea_state_feed(&nmea, buf, read_len);
+            bytes_total += read_len;
         }
 
         if (count > 1) {
@@ -527,7 +536,7 @@ static int cmd_gnss(int argc, char **argv)
         return print_ret("gnss close", close_ret);
     }
 
-    if (reads > 0) {
+    if (bytes_total > 0) {
         if (!nmea.saw_rmc && !nmea.saw_gga) {
             printf("gnss: no valid RMC/GGA sentences parsed (indoor?)\n");
         } else if (nmea.saw_rmc && nmea.saw_gga) {
@@ -579,10 +588,38 @@ static int cmd_backlight(int argc, char **argv)
     return 0;
 }
 
+// Open and mount the card once; the shell keeps the handle until "sd umount".
+static esp_err_t sd_mount_once(const char *path)
+{
+    if (s_sd != NULL) {
+        return ESP_OK;
+    }
+
+    esp_err_t ret = bsp_sdcard_open(&s_sd);
+    if (ret != ESP_OK) {
+        s_sd = NULL;
+        return ret;
+    }
+
+    ret = bsp_sdcard_mount(s_sd, path);
+    if (ret != ESP_OK) {
+        (void)bsp_sdcard_close(s_sd);
+        s_sd = NULL;
+        return ret;
+    }
+    return ESP_OK;
+}
+
 static int cmd_sd(int argc, char **argv)
 {
-    if (argc < 2 || argc > 3 || (strcmp(argv[1], "info") != 0 && strcmp(argv[1], "fs") != 0)) {
-        printf("usage: sd info|fs [mount_path]\n");
+    if (argc < 2 || argc > 3 ||
+        (strcmp(argv[1], "info") != 0 && strcmp(argv[1], "mount") != 0 &&
+         strcmp(argv[1], "umount") != 0 && strcmp(argv[1], "fs") != 0)) {
+        printf("usage: sd mount [mount_path] | umount | info | fs [mount_path]\n");
+        return 1;
+    }
+    if (strcmp(argv[1], "info") == 0 && argc != 2) {
+        printf("usage: sd info\n");
         return 1;
     }
 
@@ -592,25 +629,38 @@ static int cmd_sd(int argc, char **argv)
         return 1;
     }
 
-    const char *path = (argc == 3) ? argv[2] : default_sd_path();
+    if (strcmp(argv[1], "umount") == 0) {
+        if (s_sd == NULL) {
+            printf("sd: not mounted by shell\n");
+            return 1;
+        }
+        esp_err_t unmount_ret = bsp_sdcard_unmount(s_sd);
+        esp_err_t close_ret = bsp_sdcard_close(s_sd);
+        s_sd = NULL;
+        if (unmount_ret != ESP_OK) {
+            return print_ret("sd unmount", unmount_ret);
+        }
+        if (close_ret != ESP_OK) {
+            return print_ret("sd close", close_ret);
+        }
+        printf("sd: unmounted\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "fs") == 0) {
+        const char *path = (argc == 3) ? argv[2] : default_sd_path();
+        return print_statvfs_info(path);
+    }
 
     if (strcmp(argv[1], "info") == 0) {
+        if (s_sd == NULL) {
+            printf("sd: not mounted by shell; run \"sd mount\" first\n");
+            return 1;
+        }
         printf("present: yes\n");
 
-        bsp_sdcard_handle_t sd = NULL;
-        esp_err_t ret = bsp_sdcard_open(&sd);
-        if (ret != ESP_OK) {
-            return print_ret("sd open", ret);
-        }
-
-        ret = bsp_sdcard_mount(sd, path);
-        if (ret != ESP_OK) {
-            (void)bsp_sdcard_close(sd);
-            return print_ret("sd mount", ret);
-        }
-
         bsp_sdcard_info_t info = {0};
-        ret = bsp_sdcard_get_info(sd, &info);
+        esp_err_t ret = bsp_sdcard_get_info(s_sd, &info);
         if (ret == ESP_OK) {
             printf("card name      : %s\n", info.name);
             printf("card type      : %s\n", sd_type_name(info.type));
@@ -624,20 +674,41 @@ static int cmd_sd(int argc, char **argv)
         }
 
         bsp_sdcard_fs_info_t fs = {0};
-        ret = bsp_sdcard_get_fs_info(sd, &fs);
+        ret = bsp_sdcard_get_fs_info(s_sd, &fs);
         if (ret == ESP_OK) {
             printf("fs total bytes : %" PRIu64 "\n", fs.total_bytes);
             printf("fs free bytes  : %" PRIu64 "\n", fs.free_bytes);
         }
+        return 0;
+    }
 
-        esp_err_t close_ret = bsp_sdcard_close(sd);
-        if (close_ret != ESP_OK) {
-            return print_ret("sd close", close_ret);
+    const char *path = (argc == 3) ? argv[2] : default_sd_path();
+
+    if (s_sd != NULL) {
+        const char *mount_point = NULL;
+        if (bsp_sdcard_get_mount_point(s_sd, &mount_point) == ESP_OK) {
+            printf("sd: already mounted at %s\n", mount_point);
+        } else {
+            printf("sd: already mounted\n");
         }
         return 0;
     }
 
-    return print_statvfs_info(path);
+    esp_err_t ret = sd_mount_once(path);
+    if (ret == ESP_ERR_INVALID_STATE) {
+        printf("card handle already open by app; use \"sd fs\" for filesystem stats\n");
+        return 1;
+    }
+    if (ret != ESP_OK) {
+        return print_ret("sd mount", ret);
+    }
+    const char *mount_point = NULL;
+    if (bsp_sdcard_get_mount_point(s_sd, &mount_point) == ESP_OK) {
+        printf("sd: mounted at %s\n", mount_point);
+    } else {
+        printf("sd: mounted\n");
+    }
+    return 0;
 }
 
 

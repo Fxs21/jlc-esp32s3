@@ -234,10 +234,10 @@ static size_t cst9217_parse_points(cst9217_handle_t handle,
     return points_num;
 }
 
-esp_err_t cst9217_open(const cst9217_config_t *config, cst9217_handle_t *out_handle)
+esp_err_t cst9217_open(const cst9217_config_t *config, cst9217_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(config != NULL, ESP_ERR_INVALID_ARG, TAG, "config is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
     ESP_RETURN_ON_FALSE(config->bus != NULL, ESP_ERR_INVALID_ARG, TAG, "bus is null");
 
     esp_err_t ret = ESP_OK;
@@ -277,7 +277,7 @@ esp_err_t cst9217_open(const cst9217_config_t *config, cst9217_handle_t *out_han
     ESP_GOTO_ON_ERROR(gpio_intr_enable(config->int_gpio), err, TAG, "isr enable failed");
 
     handle->report_pending = (gpio_get_level(config->int_gpio) == CST9217_INT_ACTIVE_LEVEL);
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 
 err:

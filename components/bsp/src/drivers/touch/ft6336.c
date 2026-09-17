@@ -73,11 +73,11 @@ static void transform_point(ft6336_handle_t handle, uint16_t *x, uint16_t *y)
     *y = clamp_u16(*y, handle->y_max);
 }
 
-esp_err_t ft6336_open(const ft6336_config_t *cfg, ft6336_handle_t *out_handle)
+esp_err_t ft6336_open(const ft6336_config_t *cfg, ft6336_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "cfg is null");
     ESP_RETURN_ON_FALSE(cfg->bus != NULL, ESP_ERR_INVALID_ARG, TAG, "bus is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
 
     ESP_RETURN_ON_ERROR(reset_touch(cfg->reset_gpio, cfg->level_reset), TAG, "reset failed");
 
@@ -102,7 +102,7 @@ esp_err_t ft6336_open(const ft6336_config_t *cfg, ft6336_handle_t *out_handle)
         return ret;
     }
 
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 }
 

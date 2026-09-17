@@ -43,9 +43,9 @@ struct axp2101_t {
     i2c_master_dev_handle_t dev;
 };
 
-static esp_err_t read_reg(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *out_value)
+static esp_err_t read_reg(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *value_out)
 {
-    return i2c_master_transmit_receive(dev, &reg, sizeof(reg), out_value, sizeof(*out_value), AXP2101_I2C_TIMEOUT_MS);
+    return i2c_master_transmit_receive(dev, &reg, sizeof(reg), value_out, sizeof(*value_out), AXP2101_I2C_TIMEOUT_MS);
 }
 
 static esp_err_t write_reg(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t value)
@@ -62,21 +62,21 @@ static esp_err_t update_reg(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t ma
     return write_reg(dev, reg, new_value);
 }
 
-static esp_err_t read_h6l8(i2c_master_dev_handle_t dev, uint8_t high_reg, uint16_t *out_value)
+static esp_err_t read_h6l8(i2c_master_dev_handle_t dev, uint8_t high_reg, uint16_t *value_out)
 {
     uint8_t buf[2] = {0};
     ESP_RETURN_ON_ERROR(read_reg(dev, high_reg, &buf[0]), TAG, "read high reg failed");
     ESP_RETURN_ON_ERROR(read_reg(dev, high_reg + 1, &buf[1]), TAG, "read low reg failed");
-    *out_value = (uint16_t)(((buf[0] & 0x3F) << 8) | buf[1]);
+    *value_out = (uint16_t)(((buf[0] & 0x3F) << 8) | buf[1]);
     return ESP_OK;
 }
 
-static esp_err_t read_h5l8(i2c_master_dev_handle_t dev, uint8_t high_reg, uint16_t *out_value)
+static esp_err_t read_h5l8(i2c_master_dev_handle_t dev, uint8_t high_reg, uint16_t *value_out)
 {
     uint8_t buf[2] = {0};
     ESP_RETURN_ON_ERROR(read_reg(dev, high_reg, &buf[0]), TAG, "read high reg failed");
     ESP_RETURN_ON_ERROR(read_reg(dev, high_reg + 1, &buf[1]), TAG, "read low reg failed");
-    *out_value = (uint16_t)(((buf[0] & 0x1F) << 8) | buf[1]);
+    *value_out = (uint16_t)(((buf[0] & 0x1F) << 8) | buf[1]);
     return ESP_OK;
 }
 
@@ -85,11 +85,11 @@ static float convert_temp_c(uint16_t raw)
     return 22.0f + (7274.0f - (float)raw) / 20.0f;
 }
 
-esp_err_t axp2101_open(const axp2101_config_t *cfg, axp2101_handle_t *out_handle)
+esp_err_t axp2101_open(const axp2101_config_t *cfg, axp2101_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(cfg != NULL, ESP_ERR_INVALID_ARG, TAG, "cfg is null");
     ESP_RETURN_ON_FALSE(cfg->dev != NULL, ESP_ERR_INVALID_ARG, TAG, "dev is null");
-    ESP_RETURN_ON_FALSE(out_handle != NULL, ESP_ERR_INVALID_ARG, TAG, "out_handle is null");
+    ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
 
     uint8_t chip_id = 0;
     ESP_RETURN_ON_ERROR(read_reg(cfg->dev, AXP2101_IC_TYPE, &chip_id), TAG, "read chip id failed");
@@ -98,7 +98,7 @@ esp_err_t axp2101_open(const axp2101_config_t *cfg, axp2101_handle_t *out_handle
     struct axp2101_t *handle = calloc(1, sizeof(*handle));
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
     handle->dev = cfg->dev;
-    *out_handle = handle;
+    *handle_out = handle;
     return ESP_OK;
 }
 
@@ -134,10 +134,10 @@ esp_err_t axp2101_enable_default_irqs(axp2101_handle_t handle)
     return ESP_OK;
 }
 
-esp_err_t axp2101_get_status(axp2101_handle_t handle, axp2101_status_t *out_status)
+esp_err_t axp2101_get_status(axp2101_handle_t handle, axp2101_status_t *status_out)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_status != NULL, ESP_ERR_INVALID_ARG, TAG, "out_status is null");
+    ESP_RETURN_ON_FALSE(status_out != NULL, ESP_ERR_INVALID_ARG, TAG, "status_out is null");
 
     uint8_t status1 = 0;
     uint8_t status2 = 0;
@@ -180,14 +180,14 @@ esp_err_t axp2101_get_status(axp2101_handle_t handle, axp2101_status_t *out_stat
     ESP_RETURN_ON_ERROR(read_h6l8(handle->dev, AXP2101_ADC_DATA0 + 8, &raw), TAG, "read temperature failed");
     st.temperature_c = convert_temp_c(raw);
 
-    *out_status = st;
+    *status_out = st;
     return ESP_OK;
 }
 
-esp_err_t axp2101_get_events(axp2101_handle_t handle, axp2101_event_t *out_events, bool clear)
+esp_err_t axp2101_get_events(axp2101_handle_t handle, axp2101_event_t *events_out, bool clear)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    ESP_RETURN_ON_FALSE(out_events != NULL, ESP_ERR_INVALID_ARG, TAG, "out_events is null");
+    ESP_RETURN_ON_FALSE(events_out != NULL, ESP_ERR_INVALID_ARG, TAG, "events_out is null");
 
     uint8_t int2 = 0;
     uint8_t int3 = 0;
@@ -226,6 +226,6 @@ esp_err_t axp2101_get_events(axp2101_handle_t handle, axp2101_event_t *out_event
         ESP_RETURN_ON_ERROR(write_reg(handle->dev, AXP2101_INTSTS3, 0xFF), TAG, "clear int3 failed");
     }
 
-    *out_events = events;
+    *events_out = events;
     return ESP_OK;
 }

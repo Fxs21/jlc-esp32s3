@@ -4,7 +4,7 @@
 
 - 仓库目的和构成: `README.md`
 - 双板能力矩阵: `docs/bsp/capabilities.md`
-- 长期设计原则: `docs/bsp_design.md`
+- 结构和 API 语义: `docs/bsp_design.md`
 
 ## 当前目标
 
@@ -93,7 +93,7 @@
 - DoerS3 真机已确认: camera test_app viewfinder ~10 FPS (QvGA RGB565 ~153KB/frame byte-swap + SPI DMA @80MHz).
 - AuraS3 真机已确认: shell `bsp info` 显示各外设 present 正常,`camera: no`.
 - AuraS3 真机已确认: shell `imu read` 可读取 accel/gyro/temp 数据.
-- AuraS3 真机已确认: shell `sd info` 可显示 SD card 类型、容量、挂载信息和 FS 统计.
+- AuraS3 真机已确认: shell `sd info` 可显示 SD card 类型,容量,挂载信息和 FS 统计.
 - AuraS3 真机已确认: audio test_app tone/rec 测试正常,ES8311/ES7210 open 正常.
 - AuraS3 真机已确认: UI 启动正常,LVGL buffer 为 double buffer,lines=59,单 buffer 54988 bytes,优先 SRAM DMA,TE wait off.
 - AuraS3 真机已确认: PMU test app 可构建运行,`KEY2` / `SYS_OUT` / `AXP_IRQ` / 电池插拔 / 充电开始 / `battery_percent` 收敛路径已完成阶段性验证.
@@ -106,6 +106,7 @@
 - AuraS3 PMU public API 只承诺只读状态和 mapped events,不承诺 software power-off,rail control 或充电参数配置.
 - GNSS public API 当前只承诺 raw byte stream,不承诺结构化定位 API.
 - Audio MIC3 playback reference,TDM,AEC 已暂停,当前只承诺 ES8311 playback 和 ES7210 MIC1/MIC2 stereo record.
+- `bsp_audio_desc_t.supports_full_duplex` 当前两板都声明 true,但 full-duplex (同时播放+录音) 路径尚未真机验证.
 - TE runtime 当前默认不启用;后续若研究 TE,应参考 `esp_lvgl_adapter` 的 `TE_SYNC` 路径.
 - Display shell `fill` / `colorbars` 不恢复,避免把 board-native byte order 细节暴露成调试 API.
 
@@ -118,3 +119,4 @@
 5. 等 AuraS3 GNSS 硬件连接后,验证 `38400` baud,TX/RX 方向和 GPS reset 极性.
 6. 设计 `bsp_rtc` public API 前,先确认 `PCF85063` 的实际产品需求.
 7. ~~DoerS3 camera test_app 改造为 200 帧 viewfinder (capture->byte-swap->display)~~ 已通过.
+8. `docs/bsp_design.md` §6 的 Audio / PMU 两段复核暂停,待后续设计时一起处理. 已记录的待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.

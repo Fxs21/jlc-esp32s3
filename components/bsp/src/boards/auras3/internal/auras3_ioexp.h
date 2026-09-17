@@ -13,17 +13,17 @@ extern "C" {
 esp_err_t auras3_ioexp_acquire(void);
 esp_err_t auras3_ioexp_release(void);
 esp_err_t auras3_ioexp_set_pin(uint8_t pin, bool level);
-esp_err_t auras3_ioexp_get_pin(uint8_t pin, bool *out_level);
+esp_err_t auras3_ioexp_get_pin(uint8_t pin, bool *level_out);
 
 // Semantic wrappers: callers use these instead of raw pin numbers.
-static inline esp_err_t auras3_ioexp_get_sys_out(bool *out_level)
+static inline esp_err_t auras3_ioexp_get_sys_out(bool *level_out)
 {
-    return auras3_ioexp_get_pin(AURAS3_TCA9554_IO_SYS_OUT, out_level);
+    return auras3_ioexp_get_pin(AURAS3_TCA9554_IO_SYS_OUT, level_out);
 }
 
-static inline esp_err_t auras3_ioexp_get_axp_irq(bool *out_level)
+static inline esp_err_t auras3_ioexp_get_axp_irq(bool *level_out)
 {
-    return auras3_ioexp_get_pin(AURAS3_TCA9554_IO_AXP_IRQ, out_level);
+    return auras3_ioexp_get_pin(AURAS3_TCA9554_IO_AXP_IRQ, level_out);
 }
 
 static inline esp_err_t auras3_ioexp_set_gps_reset(bool asserted)
