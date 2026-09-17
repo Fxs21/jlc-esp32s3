@@ -4,12 +4,7 @@
 
 ## 1. 项目目标
 
-- 让同一份 app 代码稳定跑在 DoerS3 和 AuraS3 上;BSP 是手段,不是目的.
-- 维护 `components/bsp`,为两块板提供统一,稳定,简单,可解释的 BSP 能力.
-- app 只依赖 BSP public API,不直接感知具体开发板的 pin,bus,chip 差异.
-- 板级差异由 `components/bsp/src/boards/<board>/` 消化.
-- 公共 API 不能被任何一块板的私有细节污染.
-- 当前进度,未验证项和暂停项以 `docs/bsp/status.md` 为准.
+仓库目的,分层和正式承载应用的状态见根 `README.md` §1;进度,未验证项和暂停项以 `docs/bsp/status.md` 为准.
 
 ## 2. 工作方式
 
@@ -24,6 +19,7 @@
 
 - 核心 BSP API 只暴露 `esp_err_t`,基础 C 类型,BSP 自有 `struct` / `enum`.
 - 核心 BSP API 不直接暴露 ESP-IDF,LVGL 或第三方 driver 类型.
+- 公共 API 不能被任何一块板的私有细节污染.
 - 如确需暴露原生对象,只能作为明确命名的 integration / escape hatch. 当前只有两个: `bsp_ui_get_lvgl_display()` 暴露 LVGL 类型,`bsp_i2c_acquire()` 暴露原生 I2C bus handle;新增或删除例外必须同时更新本条和 `tools/check.sh` 的白名单.
 - 公开头文件的 include 边界由 `tools/check.sh` 强制: 除上述例外,只允许 C 标准库头,其他 BSP 公开头和 `esp_err.h`.
 - 外设生命周期优先使用 `open/close`;运行态操作使用清楚的动词,例如 `read/write/start/stop/capture/release`.
@@ -63,6 +59,7 @@
 
 ## 7. 当前阶段注意事项
 
+- 当前优先保证 DoerS3 路径稳定可用;AuraS3 可以先保留 stub.
 - DoerS3 硬件事实以 `docs/hw/boards/doers3_truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改.
 - AuraS3 硬件事实以 `docs/hw/boards/auras3_truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改. truth table 中标注待确认的项,当前允许对应 board port 返回 `ESP_ERR_NOT_SUPPORTED` 或保留 stub.
 - Audio 在两块板都只承诺 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.

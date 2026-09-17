@@ -253,7 +253,7 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 
 - shell 命令只调用 BSP public API.
 - `i2c scan` 这类诊断命令也应走 BSP public diagnostic API,避免 shell 复制 board pin/port.
-- shell 可用于 `bsp`, `imu`, `touch`, `gnss`, `backlight`, `sd` 等手动调试;audio 等复杂外设由自己的 test_app 验证.
+- 当前命令清单和用法见 `components/shell/README.md`.
 - shell 不恢复 display `fill` / `colorbars` 命令,避免把 board-native display byte order 变成应用语义.
 - 若某个调试能力需要 board-private hook,应先讨论是否值得进入 public API 或 test_app,不要直接让 shell include board private header.
 

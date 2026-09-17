@@ -6,18 +6,12 @@
 - 设计规则和 API 语义: `docs/bsp_design.md`
 - 硬件事实: `docs/hw/boards/<board>_truth_table.md`
 
-## 当前目标
-
-- BSP 服务于"同一个 app 稳定跑在 DoerS3 / AuraS3 上",不是独立产品;正式承载应用未定.
-- 当前优先保证 DoerS3 路径稳定可用;AuraS3 外设已接入并真机验证.
-- 只承诺真机验证过的能力,承诺边界集中在 `docs/bsp/capabilities.md`.
-
 ## 已完成
 
 - DoerS3: display,touch,backlight,sdcard,imu,audio,camera,gnss 全部真机通过;shell 和 UI 正常.
 - AuraS3: display,touch,backlight,sdcard,imu,audio,pmu 真机通过;shell 和 UI 正常.
-- camera test_app viewfinder 通路真机通过;连续采集参数和实测帧率见 `docs/hw/boards/doers3_truth_table.md`.
-- 测量数据和日志见 `docs/hw/boards/doers3_truth_table.md` 和 `docs/hw/boards/auras3_truth_table.md`.
+- camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
+- 测量数据,日志和逐项细节见各板 truth table.
 
 ## 未验证 / 暂停
 
