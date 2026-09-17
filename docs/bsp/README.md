@@ -10,8 +10,11 @@
 | `docs/bsp/status.md` | 进度: 已完成,未验证,暂停和下一步 |
 | `docs/bsp_design.md` | BSP 结构,分层职责和 API 语义 |
 | `docs/bsp/porting-guide.md` | 新增 board port 的接入指南 |
-| `docs/hw/boards/doers3_truth_table.md` | DoerS3 硬件事实和验证记录 |
-| `docs/hw/boards/auras3_truth_table.md` | AuraS3 硬件事实和验证记录 |
+| `docs/hw/boards/doers3/truth_table.md` | DoerS3 硬件事实和验证记录 |
+| `docs/hw/boards/auras3/truth_table.md` | AuraS3 硬件事实和验证记录 |
+| `docs/hw/boards/doers3/README.md` | DoerS3 板级资料入口和官方来源 |
+| `docs/hw/boards/auras3/README.md` | AuraS3 板级资料入口和官方来源 |
+| `docs/hw/specs/README.md` | 器件资料索引 (datasheet,原理图,未入库参考) |
 | `docs/hw/auras3-display-te.md` | AuraS3 TE 防撕裂实验记录 |
 | `docs/hw/auras3-pmu-key.md` | AuraS3 PMU / KEY2 阶段性结论 |
 | `components/shell/README.md` | 调试 shell 使用说明 |

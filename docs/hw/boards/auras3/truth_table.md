@@ -1,14 +1,14 @@
 # AuraS3 硬件真值表
 
-提取方式:初版依据 `tmp/AuraS3` 中 Waveshare 官方 ESP-IDF BSP,Arduino `pin_config.h`,示例程序和器件资料整理;部分项目已由用户对照原理图或真机日志确认.本文件用于 BSP 实现和审核硬件事实,示例代码只能作为交叉参考,不能覆盖原理图结论.
+提取方式:依据同目录原理图 (`schematic/schematic.pdf`),Waveshare 官方 ESP-IDF BSP 和 Arduino v3.3.5 `pin_config.h` 交叉对照整理;部分项目已由用户对照原理图或真机日志确认.官方 BSP 和 Arduino 示例未入库,来源登记在 `docs/hw/specs/README.md`.本文件用于 BSP 实现和审核硬件事实,示例代码只能作为交叉参考,不能覆盖原理图结论.
 
 ## 0. 审核状态
 
 | 项目 | 状态 | 备注 |
 |---|---|---|
-| 原理图逐页核对 | 部分确认 | `tmp/AuraS3/ESP32-S3-Touch-AMOLED-1.75/Schematic/ESP32-S3-Touch-AMOLED-1.75-schematic.pdf` |
-| 官方 ESP-IDF BSP 对照 | 已整理 | `examples/ESP-IDF-v5.5/03_esp-brookesia/components/esp32_s3_touch_amoled_1_75` |
-| Arduino pin 表对照 | 已整理 | `examples/Arduino-v3.3.5/libraries/Mylibrary/pin_config.h` |
+| 原理图逐页核对 | 部分确认 | `schematic/schematic.pdf` |
+| 官方 ESP-IDF BSP 对照 | 已整理 | 未入库,来源见 `docs/hw/specs/README.md` |
+| Arduino pin 表对照 | 已整理 | 未入库,来源见 `docs/hw/specs/README.md` |
 
 模块接入范围和逐模块验证状态见 §13.
 
@@ -29,7 +29,7 @@
 | RTC | PCF85063 | 真机 `i2c_scan` 已确认;当前无 BSP public API |
 | IO expander | TCA9554PWR | 真机 `i2c_scan` 地址 `0x20`;P7 用于 GPS reset |
 | SD card | 1-bit SDMMC | CLK=GPIO2, CMD=GPIO1, D0=GPIO3;真机确认 |
-| GNSS | LC76GABMD | 用户确认存在,接口为 UART;当前硬件未连接 |
+| GNSS | LC76GABMD (未贴) | 原理图预留模组位和 UART/reset 网络;板上未贴器件,无法验证 |
 | Camera | 不存在 | 用户确认 |
 
 ## 2. 总线与地址
@@ -48,7 +48,7 @@
 | PCF85063 地址 | `0x51` | AuraS3 真机 `i2c_scan` 确认 |
 | TCA9554PWR 地址 | `0x20` | AuraS3 真机 `i2c_scan` 确认 |
 | GNSS 接口 | UART | ESP32 RX `GPIO18` <- GNSS TX,ESP32 TX `GPIO17` -> GNSS RX |
-| GNSS baudrate | `38400` | 当前 BSP 实现值;硬件未连接,待真机验证 |
+| GNSS baudrate | `38400` | 当前 BSP 实现值;板上未贴模组,无法验证 |
 
 ### 总线冲突/待裁决项
 
@@ -175,7 +175,7 @@
 
 | 项目 | 真值 | 来源/备注 |
 |---|---|---|
-| 芯片 | QMI8658 | 官方 demo / datasheet / 真机 test |
+| 芯片 | QMI8658 | 真机 test 已确认 |
 | 总线 | 主 I2C `GPIO15` / `GPIO14` | 当前 BSP shared I2C wrapper |
 | 地址 | `0x6B` | AuraS3 真机 `i2c_scan` 确认;`0x6A` 作为 fallback |
 | 默认能力 | accel + gyro + temperature | `imu` test 已确认读数 |
@@ -203,7 +203,7 @@ temp      C: 33.71
 | I2S_DOUT | `GPIO8` | ESP32 -> ES8311 playback data | 官方 BSP `BSP_I2S_DOUT` |
 | I2S_DIN | `GPIO10` | ES7210 record data -> ESP32 | 官方 BSP `BSP_I2S_DSIN` |
 | I2S_MCLK | `GPIO42` | codec master clock | 用户确认;官方 BSP `BSP_I2S_MCLK` |
-| PA enable | `GPIO46` | speaker amplifier enable | 官方 BSP `BSP_POWER_AMP_IO`;direct GPIO |
+| PA enable | `GPIO46` | NS4150B `CTRL` | 原理图确认 `NS4150B`;官方 BSP `BSP_POWER_AMP_IO`;direct GPIO |
 
 ### Audio codec 角色
 
@@ -256,7 +256,7 @@ temp      C: 33.71
 
 | 项目 | 真值 | 来源/备注 |
 |---|---|---|
-| 模块 | LC76GABMD | 用户确认;`device/MAX-M10S-00B-01.pdf` 不作为本板 GNSS 真值 |
+| 模块 | LC76GABMD (未贴) | 原理图有模组位号和 GPS reset/UART 网络,板上未贴器件;`docs/hw/specs/chips/max-m10s_datasheet.pdf` 是 DoerS3 模块资料,与本板无关 |
 | 接口 | UART | 用户确认;Arduino I2C 示例不作为本板接口真值 |
 | UART TX/RX | ESP32 RX `GPIO18` <- GNSS TX;ESP32 TX `GPIO17` -> GNSS RX | 用户确认 |
 | baudrate | `38400` | 当前 BSP 实现;硬件未连接,待真机验证 |

@@ -5,7 +5,7 @@
 本文是 BSP 能力承诺的唯一出处: 已承诺范围和明确不承诺范围都写在这里,其他文档只引用不重复.
 
 - 进度,已完成项和下一步: `docs/bsp/status.md`
-- 硬件事实 (pin,bus,地址,连接): `docs/hw/boards/<board>_truth_table.md`
+- 硬件事实 (pin,bus,地址,连接): `docs/hw/boards/<board>/truth_table.md`
 - API 语义和分层说明: `docs/bsp_design.md`
 
 ## 1. 双板能力对照
@@ -20,7 +20,7 @@
 | sdcard | `bsp_sdcard_*` | 1-bit SDMMC + FAT | 1-bit SDMMC + FAT |
 | imu | `bsp_imu_*` | QMI8658,`0x6A` | QMI8658,`0x6B`,fallback `0x6A` |
 | audio | `bsp_audio_*` | ES8311 `0x18` + ES7210 `0x41` | ES8311 `0x18` + ES7210 `0x40` |
-| gnss | `bsp_gnss_*` | MAX-M10S,UART1,`38400` | LC76GABMD,`38400`,硬件未连接 |
+| gnss | `bsp_gnss_*` | MAX-M10S,UART1,`38400` | 原理图预留,板上未贴模组 |
 | camera | `bsp_camera_*` | GC0308 DVP,需 `CONFIG_BSP_ENABLE_CAMERA=y` | 无硬件,返回 `ESP_ERR_NOT_SUPPORTED` |
 | pmu | `bsp_pmu_*` | 无,返回 `ESP_ERR_NOT_SUPPORTED` | AXP2101 `0x34`,只读 |
 | i2c 诊断 | `bsp_i2c_acquire/probe/scan` | I2C0,SDA `GPIO1`,SCL `GPIO2` | I2C1,SDA `GPIO15`,SCL `GPIO14` |

@@ -1,6 +1,6 @@
 # ESP32-S3 DoerS3 板级硬件真值表
 
-提取方式:主要依据原理图 P1/P2/P3 和当前 BSP 真机验证记录.本文档记录硬件事实和当前软件约定,不作为 public API 设计本身.
+提取方式:主要依据同目录原理图 (`schematic/schematic.pdf`,分页图 `schematic/page-01..03.png`,对应 P1/P2/P3) 和当前 BSP 真机验证记录.本文档记录硬件事实和当前软件约定,不作为 public API 设计本身.
 
 ## 1. 总线与地址
 
@@ -150,7 +150,7 @@ test_app 验证:
 | Baudrate | `38400` |
 | 当前验证模块 | MAX-M10S |
 
-DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.
+DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `docs/hw/specs/chips/max-m10s_datasheet.pdf`.
 
 ## 4. 当前 BSP 能力和验证状态
 

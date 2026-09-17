@@ -274,7 +274,10 @@ shell 用于手动 bring-up/debug,不是 BSP public API 的替代品.
 - `docs/bsp/status.md`: 进度面 — 已完成,未验证,暂停和下一步;不重复承诺边界.
 - `docs/bsp_design.md`: BSP 结构,分层职责和 API 语义.
 - `docs/bsp/porting-guide.md`: board port 接入指南和每个文件的实现模板.
-- `docs/hw/boards/*_truth_table.md`: 板级硬件事实,pin,bus,芯片连接,待确认项和该板的验证记录.
+- `docs/hw/boards/<board>/truth_table.md`: 板级硬件事实,pin,bus,芯片连接,待确认项和该板的验证记录.
+- `docs/hw/boards/<board>/README.md`: 板级资料入口,官方来源链接和厂商资料清单.
+- `docs/hw/boards/<board>/schematic/`: 板厂原理图和分页图.
+- `docs/hw/specs/`: 器件 datasheet 和手册,索引在 `docs/hw/specs/README.md`.
 - `docs/hw/auras3-display-te.md`: AuraS3 CO5300 TE 实验记录和当前取舍.
 - `docs/hw/auras3-pmu-key.md`: AuraS3 AXP2101 PMU,KEY2,SYS_OUT 和 AXP_IRQ 阶段性结论.
 - `components/shell/README.md`: 调试 shell 使用说明.

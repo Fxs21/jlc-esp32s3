@@ -60,4 +60,4 @@ TinyGPSPlus/       NMEA 解析
 ## 6. 参考
 
 - 双板能力: `docs/bsp/capabilities.md`
-- 硬件事实: `docs/hw/boards/doers3_truth_table.md`, `docs/hw/boards/auras3_truth_table.md`
+- 硬件事实: `docs/hw/boards/doers3/truth_table.md`, `docs/hw/boards/auras3/truth_table.md`

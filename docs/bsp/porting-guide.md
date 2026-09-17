@@ -396,4 +396,4 @@ API 语义,验证和文档规则见 `AGENTS.md` 和 `docs/bsp_design.md`;这里�
 2. **Linker 选择**, 不运行时区分板型, 不做 board detect
 3. **I2C bus 和 IOEXP 通过 `bsp_i2c_acquire/release` 和 `<board>_ioexp_acquire/release` 管理**;board port 内部确有第二处共享资源时 (如 AuraS3 display/backlight 共享 panel), 自己维护 refcount 并说明理由
 4. **pins.h 是 pin 分配的单一事实来源**, 代码不硬编码 GPIO 值
-5. **修改 board port 后同步 truth table**: 规则见 `AGENTS.md` §7
+5. **修改 board port 后同步 truth table** (`docs/hw/boards/<board>/truth_table.md`): 规则见 `AGENTS.md` §7
