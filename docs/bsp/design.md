@@ -13,8 +13,8 @@ components/
     src/boards/doers3/      # DoerS3 board port
     src/boards/auras3/      # AuraS3 board port
     src/drivers/            # BSP 私有 IC driver
-    test_app/               # BSP 能力验证工程和 shell 调试 app
   shell/                    # 非 BSP,独立调试组件
+test/                       # 板级自检工程和 shell 调试 app,bsp.sh 为统一入口
 ```
 
 基本规则:
@@ -25,7 +25,7 @@ components/
 - `src/drivers/` 放可复用但不公开的小芯片 driver.
 - `src/common/` 只放真正跨板复用的组合逻辑,不放某块板专用的临时实现.
 - `src/common/unsupported/` 放能力缺席时的共享默认实现 (`desc.present = false`,API 返回 `ESP_ERR_NOT_SUPPORTED`),每个可能缺席的公开能力至多一份;不允许"既无实现又无兜底"的能力留到链接期.
-- `test_app/` 用公开 API 验证 BSP 能力.
+- `test/` 用公开 API 验证 BSP 能力.
 - `components/shell/` 非 BSP 的独立调试组件,不属于 BSP 交付面.
 
 ## 2. 公共 API 语义约定
@@ -234,7 +234,7 @@ CONFIG_BSP_ENABLE_CAMERA
 
 规则:
 
-- 构建入口统一使用 `components/bsp/test_app/bsp.sh`.
+- 构建入口统一使用 `test/bsp.sh`.
 - 每个 app 只维护一个 `sdkconfig.defaults`,一个真实 `sdkconfig`,一个 `build/`.
 - board 选择由 wrapper 写入 app-local `sdkconfig`.
 - 同一个 app 切换 board 时,wrapper 自动清理 `sdkconfig` 和 `build/`.

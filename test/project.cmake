@@ -1,4 +1,4 @@
-get_filename_component(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+get_filename_component(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 if(NOT DEFINED IDF_TARGET)
     set(IDF_TARGET esp32s3 CACHE STRING "ESP-IDF target" FORCE)
@@ -6,6 +6,7 @@ endif()
 
 set(EXTRA_COMPONENT_DIRS
     "${REPO_ROOT}/components/bsp"
+    "${CMAKE_CURRENT_LIST_DIR}/selftest"
     "${REPO_ROOT}/managed_components"
 )
 

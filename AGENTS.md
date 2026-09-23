@@ -47,7 +47,7 @@
 
 ## 6. 验证原则
 
-- 复杂能力 (多外设组合,需要人工观察) 应有独立 `components/bsp/test_app/<name>`,例如 `ui`,`camera`,`audio`,`pmu`.
+- 复杂能力 (多外设组合,需要人工观察) 应有独立 `test/<name>`,例如 `ui`,`camera`,`audio`,`pmu`.
 - 简单 I2C/UART 外设 (如 IMU,GNSS) 和通用调试能力 (backlight,SD) 的验证合并到 shell 命令,不保留独立 test_app.
 - test_app 只依赖公开 BSP API,不 include board port 或私有 driver 头文件.
 - 自动化优先验证可构建,可运行的最小路径;需要人工动作的测试应在日志中明确提示.

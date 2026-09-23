@@ -110,7 +110,7 @@ Bring-up 期间曾临时打印 raw IRQ status,并已经确认以下 AXP2101 IRQ 
 
 ## 已完成的 KEY2 真机验证
 
-使用 `components/bsp/test_app/pmu` 的 500ms 循环观察测试,已确认:
+使用 `test/pmu` 的 500ms 循环观察测试,已确认:
 
 - KEY2 按下边沿会产生 AXP2101 `INTSTS2=0x02`,当前不映射为 BSP event;
 - KEY2 松开边沿会产生 AXP2101 `INTSTS2=0x01`,当前不映射为 BSP event;

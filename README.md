@@ -16,7 +16,7 @@ BSP 是手段,不是目的. 目的有两个:
 1. 让同一个 app 在 DoerS3 / AuraS3 上都能稳定运行.
 2. 用真实应用持续验证 BSP.
 
-正式承载的应用还没有定;选定前 BSP 只保证 `components/bsp/test_app` 已验证的能力.
+正式承载的应用还没有定;选定前 BSP 只保证 `test/` 里验证过的能力.
 
 ## 2. 当前状态
 
@@ -27,14 +27,15 @@ BSP 是手段,不是目的. 目的有两个:
 
 逐项能力见 `docs/bsp/capabilities.md`;进度见 `docs/bsp/status.md`,真机结论和测量数据见各板 truth table.
 
-验证入口是 `components/bsp/test_app/*`: `audio`,`camera`,`pmu`,`shell`,`ui`.
+验证入口是 `test/*`: `audio`,`camera`,`pmu`,`shell`,`ui`.
 
 ## 3. 仓库构成
 
 ```text
-components/bsp/       # 唯一对外交付组件: public API + board port + 私有 driver + test_app
+components/bsp/       # 唯一对外交付组件: public API + board port + 私有 driver
 components/shell/     # 独立调试 shell,不属于 BSP
-main/                 # 应用入口壳,能力验证走 components/bsp/test_app
+main/                 # 应用入口壳
+test/                 # 板级自检工程,bsp.sh 为统一构建入口
 docs/                 # 设计,状态,接入指南,硬件事实和板厂例程参考
 ```
 
@@ -60,7 +61,7 @@ idf.py build
 BSP test app:
 
 ```sh
-cd components/bsp/test_app
+cd test
 ./bsp.sh ui doer build flash monitor
 ./bsp.sh audio aura build flash monitor
 ```

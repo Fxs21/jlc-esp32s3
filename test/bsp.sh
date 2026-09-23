@@ -19,7 +19,7 @@ if [ ${#ACTIONS[@]} -eq 0 ]; then
 fi
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-REPO_ROOT=$(CDPATH= cd -- "$ROOT/../../.." && pwd)
+REPO_ROOT=$(CDPATH= cd -- "$ROOT/.." && pwd)
 APP_DIR="$ROOT/$APP"
 
 if [ ! -d "$APP_DIR" ]; then

@@ -82,15 +82,15 @@ void app_main(void)
 }
 ```
 
-可直接参考可运行示例: `components/bsp/test_app/shell/main/test_shell.c`.
+可直接参考可运行示例: `test/shell/main/test_shell.c`.
 该示例打印当前编译进来的 BSP board 名称, 注册 `/sdcard` 路径后从 `/` 启动 shell; SD 卡在运行 `sd mount` 时挂载, 未插卡不影响 `i2c scan` 等其它命令.
 
 ### 多板型配套运行
 
-shell 的测试入口是 `components/bsp/test_app/shell`, 它不单独选择硬件, 板型由 `components/bsp` 的 Kconfig 决定. 用 `bsp.sh` 在 DoerS3 / AuraS3 之间切换:
+shell 的测试入口是 `test/shell`, 它不单独选择硬件, 板型由 `components/bsp` 的 Kconfig 决定. 用 `bsp.sh` 在 DoerS3 / AuraS3 之间切换:
 
 ```sh
-cd components/bsp/test_app
+cd test
 
 ./bsp.sh shell doer build flash monitor
 ./bsp.sh shell aura build flash monitor

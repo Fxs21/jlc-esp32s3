@@ -40,14 +40,14 @@ components/bsp/include/          # app 可见 BSP API
 components/bsp/src/common/       # 跨板复用组合逻辑
 components/bsp/src/boards/       # board port
 components/bsp/src/drivers/      # BSP 私有 driver
-components/bsp/test_app/         # BSP 能力验证工程
+test/                            # 板级自检工程
 components/shell/                # 可选调试组件,BSP 不依赖它
 ```
 
 ## 验证入口
 
 ```sh
-cd components/bsp/test_app
+cd test
 ./bsp.sh <app> <auras3|aura|doers3|doer> build
 ./bsp.sh <app> <auras3|aura|doers3|doer> build flash monitor
 ```
