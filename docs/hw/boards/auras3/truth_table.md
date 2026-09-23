@@ -165,11 +165,11 @@
 | SD_CLK | `GPIO2` | SDMMC CLK | 官方 BSP `BSP_SD_CLK`;Arduino `SDMMC_CLK` |
 | SD_CMD | `GPIO1` | SDMMC CMD | 官方 BSP `BSP_SD_CMD`;Arduino `SDMMC_CMD` |
 | SD_D0 | `GPIO3` | SDMMC DAT0 | 官方 BSP `BSP_SD_D0`;Arduino `SDMMC_DATA` |
-| Mount point | `/sdcard` | FAT mount | shell test 真机确认 |
+| Mount point | `/sdcard` | FAT mount | `test/sdcard` 真机确认 |
 
 ### SD 注意事项
 
-- SDMMC 1-bit 模式真机验证通过: shell test mount 正常,与官方 BSP 行为一致.
+- SDMMC 1-bit 模式真机验证通过: `test/sdcard` 自检 mount,读写正常,与官方 BSP 行为一致.
 - 此前使用过 SDSPI(SPI3_HOST + GPIO41 CS),真机 mount 31GB SDHC 卡成功.切换到 SDMMC 后,GPIO41 不再用于 SD card.
 - SDIO 探测阶段 cmd=52 / cmd=5 command not supported 日志属于正常输出,只要 `mounted: 1` 即为成功.
 
@@ -293,12 +293,56 @@ temp      C: 33.71
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL demo widgets 真机确认 |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping |
-| `bsp_touch` | 已实现 | CST9217 touch 方向已确认 |
-| `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 |
-| `bsp_imu` | 已实现 | QMI8658 test 真机确认 |
+| `bsp_touch` | 已实现 | CST9217,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh touch auras3`, 5/5 PASS) |
+| `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh sdcard auras3`, 8/8 PASS) |
+| `bsp_imu` | 已实现 | QMI8658,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh imu auras3`, 6/6 PASS) |
 | `bsp_audio` | 已实现 | ES8311 tone 真机确认;ES7210 open 正常 |
 | `bsp_gnss` | 已实现但未硬件验证 | 模块未连接,暂不测 |
 | `bsp_pmu` | 已实现 | AXP2101 只读 status/events,KEY2 和电池事件真机确认 |
 | `bsp_camera` | unsupported | 用户确认无 camera |
 | RTC | 暂缓 | 当前无 public BSP API |
 | TCA9554PWR | 内部 helper 已接入 | 当前用于 GNSS reset 和 input default setup |
+
+## 14. 例程对照结论
+
+对照 `docs/code/auras3/ESP-IDF-v5.4/` 例程源码,逐项核对初始化序列,地址和取值;一致项已由 driver 覆盖,差异项按下表记录"例程行为 / 本仓库取舍 / 理由".核对基线: 2026-09-23, sha `99a464c`.已核对完毕的例程从 `docs/code/` 删除.
+
+### 03_QMI8658 -> `bsp_imu`
+
+一致项: 地址 `0x6B` (fallback `0x6A`),`CTRL1` bit6 寄存器地址自增,accel/gyro 12 字节 burst 小端解析,`STATUS0 & 0x03` 判数据就绪,温度通道,时间戳取 24 位采样计数.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| accel `4G@1000Hz`,gyro `64dps@896.8Hz` | accel `8G@1000Hz`,gyro `512dps@1000Hz` | 本仓库自有取值,覆盖更大动态范围;例程取值不是硬件约束 |
+| 开 accel LPF (mode 0) 和 gyro LPF (mode 3),写 `CTRL5` | `CTRL5` 保持 0 | BSP 交付未滤波的原始读数,滤波策略交给上层;不影响寄存器序列正确性 |
+| `configAccelerometer` / `configGyroscope` 默认 `selfTest = true`,置 `CTRL2/CTRL3` bit7 | 不开 self-test | self-test 是产测动作,不在 `open()` 常态开启 |
+| I2C 100 kHz | 400 kHz | 与全板 I2C 速率统一 |
+| `CTRL1` 保持出厂 `BE=1`,手册 Table 22 写作"大端",例程与本仓库都按小端解析 | 沿用板厂实现 | 真机加速度模长 9.96~9.99 m/s^2 合理;手册与实测矛盾处留在本条,需要时用静态姿态基准复测 |
+
+### 04_SD_MMC -> `bsp_sdcard`
+
+一致项: `CLK=GPIO2`,`CMD=GPIO1`,`D0=GPIO3`,1-bit 总线,挂载点 `/sdcard`,`max_files=5`,20 MHz,内部上拉.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| `format_if_mount_failed = true` (`CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED=y`) | `format_if_mount_failed = false` | 格式化是破坏性操作,BSP 不自动执行 |
+| `allocation_unit_size = 16 KB` | 32 KB | 批量写场景减少 FAT 簇链开销;该值只影响性能,不影响挂载兼容性 |
+| `CONFIG_FATFS_VFS_FSTAT_BLKSIZE=4096` | IDF 默认 | 当前没有对该值敏感的使用路径;需要时再对齐 |
+| 挂载前把 TCA9554 `P0/P1/P2/P7` 拉低 200 ms 再拉高 | 不复制 | AuraS3 上 `P0..P2` 未连接,`P7` 是 `GPS_RST`;该序列对 SD 无影响,复制会误动 GPS 复位 |
+| I2C 200 kHz (仅用于 TCA9554) | 400 kHz | 与全板 I2C 速率统一 |
+
+### 07_Touch -> `bsp_touch`
+
+一致项: 地址 `0x5A`,`RST=GPIO40`,`INT=GPIO11`,面板 `466x466`,`mirror_x/mirror_y=true`,`swap_xy=false`,I2C 走 `GPIO15/GPIO14`.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| I2C 100 kHz | 400 kHz | 与全板 I2C 速率统一 |
+| 30 ms 轮询读点 | INT 下沿中断置位,`read()` 按需刷新寄存器并缓存,1.5 s 无上报清缓存 | 轮询占 I2C 带宽且延迟大;缓存避免重复读寄存器 |
+| `getPoint(x, y, 2)` 请求 2 点 | `max_points = 1` | 当前只承诺单点;多点能力未真机确认,见待办 |
+| `setMaxCoordinates(466, 466)` | `465` | 该值是镜像轴 (`x_max - x`),取 `466 - 1` 才能保证镜像后仍落在可报坐标范围内 |
+
+### 待办
+
+- 触摸多点能力: 真机确认后再决定是否承诺 `max_points > 1` 及相关 API.
+- IMU `CTRL1` 的 `BE` 位与手册描述不一致: 需要绝对精度时用静态姿态基准复测字节序.

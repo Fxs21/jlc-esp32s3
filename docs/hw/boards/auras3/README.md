@@ -10,7 +10,7 @@ Waveshare ESP32-S3-Touch-AMOLED-1.75.硬件真值 (pin,bus,地址,验证记录) 
 | `schematic/schematic.pdf` | 官方原理图,3 页 (原文件 `ESP32-S3-Touch-AMOLED-1.75.pdf`) |
 | `mechanical/auras3_3d_model.zip` | 结构件资料: DWG + 2D 图纸 + STP 3D 模型 (原 `ESP32-S3-Touch-AMOLED-1.75-3D.zip`) |
 | `mechanical/auras3_3d_drawing_b.zip` | B 变体 2D 图纸 (DWG + PDF,无 3D 模型) |
-| `docs/code/auras3/ESP-IDF-v5.4/01_AXP2101` ~ `07_Touch` | 从官方示例包提取的 ESP-IDF 例程,范围和约定见 `docs/code/auras3/README.md` |
+| `docs/code/auras3/ESP-IDF-v5.4/` | 从官方示例包提取的 ESP-IDF 例程 (已核对完毕的例程逐步删除),范围和约定见 `docs/code/auras3/README.md` |
 
 ## 官方示例代码包
 
@@ -30,7 +30,7 @@ Waveshare ESP32-S3-Touch-AMOLED-1.75.硬件真值 (pin,bus,地址,验证记录) 
 | `ESP-IDF-v5.4/08_ESP32-S3-Touch-AMOLED-1_75-esp-brookesia` | esp-brookesia 综合示例 |
 | `Firmware/` | 出厂固件 `ESP32-S3-Touch-AMOLED-1.75-FactoryOnly.bin` |
 
-ESP-IDF `01` ~ `07` 已按"保留 `main/` 源码和资源,剔除构建产物"的规则提取到 `docs/code/auras3/ESP-IDF-v5.4/`.
+ESP-IDF `01` ~ `07` 已按"保留 `main/` 源码和资源,剔除构建产物"的规则提取到 `docs/code/auras3/ESP-IDF-v5.4/`;其中已核对完毕的例程 (`03_QMI8658`,`04_SD_MMC`,`07_Touch`) 已删除,结论见 `truth_table.md` §14.
 例程内 vendored 的 `components/` 一并保留;Arduino 示例,`08_...esp-brookesia` 和 `Firmware/` 未提取.
 原始 zip 已删除,需要时从官方来源重新下载.
 
