@@ -108,7 +108,7 @@ ensure_managed_components_link() {
 
 run_idf() {
     ensure_managed_components_link
-    idf.py -B build "${ACTIONS[@]}"
+    idf.py -B build reconfigure "${ACTIONS[@]}"
 }
 
 if [ ${#ACTIONS[@]} -eq 1 ] && [ "${ACTIONS[0]}" = "clean" ]; then

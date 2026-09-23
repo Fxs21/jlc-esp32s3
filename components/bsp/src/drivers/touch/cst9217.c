@@ -35,6 +35,8 @@ struct cst9217_s {
     int64_t last_report_us;
 };
 
+static bool s_isr_service_ready;
+
 static esp_err_t cst9217_hw_reset(cst9217_handle_t handle)
 {
     ESP_RETURN_ON_ERROR(gpio_set_level(handle->config.reset_gpio, 0), TAG, "reset low failed");
@@ -268,9 +270,12 @@ esp_err_t cst9217_open(const cst9217_config_t *config, cst9217_handle_t *handle_
     ESP_GOTO_ON_ERROR(cst9217_hw_reset(handle), err, TAG, "reset failed");
     ESP_GOTO_ON_ERROR(cst9217_read_config(handle), err, TAG, "Read config failed");
 
-    ret = gpio_install_isr_service(0);
-    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
-        goto err;
+    if (!s_isr_service_ready) {
+        ret = gpio_install_isr_service(0);
+        if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+            goto err;
+        }
+        s_isr_service_ready = true;
     }
     ESP_GOTO_ON_ERROR(gpio_isr_handler_add(config->int_gpio, cst9217_isr, handle), err, TAG, "isr add failed");
     handle->isr_registered = true;

@@ -1,8 +1,9 @@
 // test/touch: bsp_touch 板级自检. 只使用 BSP public API; 判据是本文件的常量.
 // 除落指动作外全部由程序判定: 人工按提示落指, 程序读坐标并按容差判定对错.
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "bsp_display.h"
 #include "bsp_touch.h"
@@ -30,6 +31,9 @@ static const char *TAG = "test_bsp_touch";
 #define TARGET_RADIUS_PERCENT 30
 // 人工落点误差容限. 坐标轴镜像或交换会偏出 2 x 半径, 仍然会被判定为 fail.
 #define TARGET_TOLERANCE_PX 80
+// 单个目标点允许的落点次数. 落在容差外的点只记录并忽略, 让人重试;
+// 真人看不到串口提示, 多点或点歪是常态, 不该毁掉整轮.
+#define TOUCH_MAX_ATTEMPTS 6
 // 单次 read 的缓冲; 容量大于 max_points 才能验证驱动按点数截断.
 #define READ_CAPACITY 4
 
@@ -192,24 +196,42 @@ TEST_CASE("touch: guided five point check", "[touch]")
         ESP_LOGI(TAG, ">>> tap %s: aim at (x=%d, y=%d), hold until the next log line",
                  s_targets[i].name, target_x, target_y);
 
-        bsp_touch_point_t point = {0};
-        TEST_ASSERT_TRUE_MESSAGE(wait_for_touch(&point, TOUCH_TIMEOUT_MS), "no touch report before timeout");
+        const int64_t deadline_us = esp_timer_get_time() + (int64_t)TOUCH_TIMEOUT_MS * 1000;
+        int attempts = 0;
+        bool accepted = false;
 
-        const int offset_x = (int)point.x - target_x;
-        const int offset_y = (int)point.y - target_y;
-        ESP_LOGI(TAG, "<<< %s: got (x=%u, y=%u), offset (%+d, %+d) px, pressure=%u, id=%u",
-                 s_targets[i].name,
-                 point.x,
-                 point.y,
-                 offset_x,
-                 offset_y,
-                 (unsigned)point.pressure,
-                 (unsigned)point.id);
+        while (!accepted && attempts < TOUCH_MAX_ATTEMPTS && esp_timer_get_time() < deadline_us) {
+            bsp_touch_point_t point = {0};
+            if (!wait_for_touch(&point, TOUCH_TIMEOUT_MS)) {
+                break;
+            }
 
-        TEST_ASSERT_INT_WITHIN(TARGET_TOLERANCE_PX, target_x, (int)point.x);
-        TEST_ASSERT_INT_WITHIN(TARGET_TOLERANCE_PX, target_y, (int)point.y);
+            attempts++;
+            const int offset_x = (int)point.x - target_x;
+            const int offset_y = (int)point.y - target_y;
+            accepted = abs(offset_x) <= TARGET_TOLERANCE_PX && abs(offset_y) <= TARGET_TOLERANCE_PX;
 
-        TEST_ASSERT_TRUE_MESSAGE(wait_for_release(RELEASE_TIMEOUT_MS), "finger still on the panel");
+            ESP_LOGI(TAG, "%s %s: got (x=%u, y=%u), offset (%+d, %+d) px, pressure=%u, id=%u, attempt %d/%d",
+                     accepted ? "<<<" : "---",
+                     s_targets[i].name,
+                     point.x,
+                     point.y,
+                     offset_x,
+                     offset_y,
+                     (unsigned)point.pressure,
+                     (unsigned)point.id,
+                     attempts,
+                     TOUCH_MAX_ATTEMPTS);
+
+            if (!accepted) {
+                ESP_LOGW(TAG, "out of region, tap %s again: aim (x=%d, y=%d), tolerance +/- %d px",
+                         s_targets[i].name, target_x, target_y, TARGET_TOLERANCE_PX);
+            }
+
+            TEST_ASSERT_TRUE_MESSAGE(wait_for_release(RELEASE_TIMEOUT_MS), "finger still on the panel");
+        }
+
+        TEST_ASSERT_TRUE_MESSAGE(accepted, "no touch inside the target region");
     }
 }
 
