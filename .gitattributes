@@ -1,3 +1,6 @@
 *.pdf binary
 *.zip binary
 *.png binary
+*.pcm binary
+docs/code/doers3/0*/** linguist-vendored
+docs/code/auras3/ESP-IDF-v5.4/** linguist-vendored

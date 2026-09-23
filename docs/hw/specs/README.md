@@ -6,7 +6,7 @@
 - 目录: `esp32-s3/` 主控,`chips/` 器件,`panels/` 面板模组;面板模组的尺寸/FPC/光学/触控资料放 `panels/`,驱动 IC 手册仍放 `chips/`.
 - 命名 `<part>_<doctype>[_<lang|rev>].pdf`: 全小写,无空格,无中文;doctype 取 `datasheet` / `trm` / `user_guide` / `porting_guide` / `app_note` / `schematic` / `panel`.
 - truth table 和其它文档引用资料时写文件名,不写本地绝对路径.
-- 整包 SDK,示例工程,厂商 wiki 不入库,登记在"未入库参考".
+- 整包 SDK,示例工程,厂商 wiki 不入库,登记在"未入库参考";示例包中提取的板级参考源码放在 `docs/code/<board>/`.
 
 ## 主控
 
@@ -57,8 +57,10 @@
 | 资料 | 用途 | 状态 |
 |---|---|---|
 | Waveshare 官方 ESP-IDF BSP (`esp32_s3_touch_amoled_1_75`) | AuraS3 引脚和显示/触摸初始化的交叉参考 | 来源见 `../boards/auras3/README.md` |
+| Waveshare 官方示例包 (`ESP-IDF-v5.4` 例程) | AuraS3 各外设的板厂参考实现 | `01`~`07` 已提取到 `docs/code/auras3/ESP-IDF-v5.4/`;原始 zip 已删除 |
 | Arduino v3.3.5 `pin_config.h` (AuraS3) | AuraS3 引脚交叉对照 | 来源见 `../boards/auras3/README.md` |
-| 立创实战派 ESP32-S3 官方例程包 | DoerS3 各外设的板厂参考实现 | 来源见 `../boards/doers3/README.md` |
+| 立创实战派 ESP32-S3 官方例程包 | DoerS3 各外设的板厂参考实现 | `01`~`08` 已提取到 `docs/code/doers3/`;原始 zip 已删除 |
 | ESP32-S3 Hardware Design Guidelines | 硬件设计参考 | 未入库,URL 待补 |
 | X-TRACK | LVGL 骑行码表参考工程;x-track 移植实验的上游 | 未入库;`https://github.com/FASTSHIFT/X-TRACK.git`,参考 commit `c42b8e5` |
 | EasyGPS | GPS 终端参考工程结构 | 未入库;`https://github.com/ZhangKeLiang0627/EasyGPS.git`,参考 commit `337eaeb` |
+| LVGL 圆屏旋钮示例 | 圆形屏幕的 LVGL 布局参考 | 未入库;`https://github.com/lvgl/lv_port_viewe_knob_15_espidf` |

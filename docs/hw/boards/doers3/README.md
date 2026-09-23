@@ -8,7 +8,7 @@
 |---|---|
 | `truth_table.md` | 硬件真值表: pin,bus,地址,待确认项和验证记录 |
 | `schematic/schematic.pdf` | 原理图,3 页 (原文件 `SCH_ESP32-S3-V1_0_1_2026-04-20.pdf`);分页图 `page-01..03.png` |
-| `code/jlc_szp_doers3_examples.zip` | 官方例程包,未解压,待处理 (103MB,解压 340MB) |
+| `docs/code/doers3/01-boot_key` ~ `08-lcd_lvgl` | 从官方例程包提取的 BSP 对照例程,范围和约定见 `docs/code/doers3/README.md` |
 
 ## 官方来源
 
@@ -18,7 +18,7 @@
 
 ## 官方例程包
 
-`code/jlc_szp_doers3_examples.zip` 含 14 个例程:
+上游例程包 (103MB) 含 14 个例程:
 
 | 例程 | 内容 |
 |---|---|
@@ -37,4 +37,6 @@
 | `13-human_face_detection` | 人脸检测 (含 vendored esp-dl,260MB) |
 | `14-handheld` | 掌机 (含 35MB 素材) |
 
-其中 `01` ~ `08` 是 BSP 的直接对照实现;整包因体积和 GitHub 100MB 单文件限制暂不入库,待提取源码子集.
+其中 `01` ~ `08` 是 BSP 的直接对照实现,已按"保留源码和资源,剔除构建产物"的规则提取到 `docs/code/doers3/`.
+`09` ~ `14` 是 WiFi,BLE,语音识别,人脸检测和应用综合示例,不属于板级 bring-up 参考,未提取.
+原始 zip 已删除,需要时从官方来源重新下载.

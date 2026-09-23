@@ -35,7 +35,7 @@ BSP 是手段,不是目的. 目的有两个:
 components/bsp/       # 唯一对外交付组件: public API + board port + 私有 driver + test_app
 components/shell/     # 独立调试 shell,不属于 BSP
 main/                 # 应用入口壳,能力验证走 components/bsp/test_app
-docs/                 # 设计,状态,接入指南和硬件事实
+docs/                 # 设计,状态,接入指南,硬件事实和板厂例程参考
 ```
 
 `main/` 当前是空入口,只为让 root 工程能被 `idf.py build`;不要在 `main/` 里堆能力验证代码.
