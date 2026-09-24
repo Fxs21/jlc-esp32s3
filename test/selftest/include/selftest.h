@@ -18,7 +18,7 @@ extern const char selftest_git_sha[];
 void selftest_start(const char *module);
 
 // 跑完全部 unity 用例并打印汇总行, 返回是否全部通过.
-//   SELFTEST end module=imu board=AuraS3 sha=1a2b3c4d tests=4 failed=0 result=PASS
+//   SELFTEST end module=imu board=AuraS3 sha=1a2b3c4d tests=4 failed=0 ignored=0 result=PASS
 bool selftest_run(const char *module);
 
 // 模块在本板不存在时使用: 打印 SKIP 行, 不算失败.
@@ -28,9 +28,10 @@ void selftest_skip(const char *module, const char *reason);
 // 人工确认: 打印提示并从 console 读一行. 返回 1 = y, 0 = n, -1 = 超时或无输入.
 int selftest_ask_yes_no(const char *prompt, int timeout_ms);
 
-// 人工确认并把结论写成结构化行; 只有回答 y 才返回 true.
+// 人工确认并把结论写成结构化行; 返回 1 = y, 0 = n, -1 = 超时或无输入 (pending).
+// 调用方用 TEST_IGNORE 处理 -1: pending 既不算通过也不算失败.
 //   SELFTEST human module=display board=AuraS3 item=ghosting result=yes|no|pending
-bool selftest_human_check(const char *module, const char *item, const char *prompt, int timeout_ms);
+int selftest_human_check(const char *module, const char *item, const char *prompt, int timeout_ms);
 
 #ifdef __cplusplus
 }

@@ -21,12 +21,12 @@
 
 ```text
 SELFTEST start module=imu board=AuraS3 sha=1a2b3c4d
-SELFTEST end module=imu board=AuraS3 sha=1a2b3c4d tests=4 failed=0 result=PASS
+SELFTEST end module=imu board=AuraS3 sha=1a2b3c4d tests=4 failed=0 ignored=0 result=PASS
 SELFTEST end module=camera board=AuraS3 sha=1a2b3c4d result=SKIP reason=no camera
 SELFTEST human module=display board=AuraS3 item=ghosting result=yes|no|pending
 ```
 
-人工项由程序提示, 人只做物理动作和回答 `y` / `n`; 超时未回答记 `pending`, 既不算通过也不算失败.
+人工项由程序提示, 人只做物理动作和回答 `y` / `n`; 被接受的按键会回显成 `y` / `n` 加换行 (idf.py monitor 自身不做回显), 判据仍是 `SELFTEST human` 行. 超时未回答记 `pending`, 在 runner 里表现为 unity ignored, 汇总行的 `ignored=` 给出数量, 既不算通过也不算失败.
 
 ## 构建
 

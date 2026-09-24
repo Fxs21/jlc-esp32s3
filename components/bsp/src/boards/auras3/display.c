@@ -226,11 +226,14 @@ esp_err_t bsp_backlight_close(bsp_backlight_handle_t handle)
     }
     if (s_ref_count > 0) {
         s_ref_count--;
+        if (s_ref_count == 0) {
+            ret = panel_deinit();
+        }
     }
     panel_unlock();
 
     free(handle);
-    return ESP_OK;
+    return ret;
 }
 
 esp_err_t bsp_backlight_set_percent(bsp_backlight_handle_t handle, uint8_t percent)
@@ -361,6 +364,7 @@ esp_err_t bsp_display_open(bsp_display_handle_t *handle_out)
         return ret;
     }
 
+    // 引用规则: 0 -> 1 时拉 panel, 1 -> 0 时拆 panel; display 和 backlight 各持一个引用.
     if (s_ref_count == 0) {
         ret = panel_init(&handle->port);
         if (ret != ESP_OK) {
@@ -391,10 +395,11 @@ esp_err_t bsp_display_close(bsp_display_handle_t handle)
         return ret;
     }
 
-    if (s_ref_count == 1) {
-        ret = panel_deinit();
-    } else if (s_ref_count > 1) {
+    if (s_ref_count > 0) {
         s_ref_count--;
+        if (s_ref_count == 0) {
+            ret = panel_deinit();
+        }
     } else {
         ret = ESP_ERR_INVALID_STATE;
     }

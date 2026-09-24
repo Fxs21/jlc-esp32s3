@@ -1,6 +1,7 @@
 #include "selftest.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "bsp_board.h"
 #include "esp_log.h"
@@ -42,8 +43,9 @@ bool selftest_run(const char *module)
 
     const unsigned tests = (unsigned)Unity.NumberOfTests;
     const unsigned failed = (unsigned)Unity.TestFailures;
-    ESP_LOGI(TAG, "SELFTEST end module=%s board=%s sha=%s tests=%u failed=%u result=%s",
-             module, board_name(), selftest_git_sha, tests, failed, failed == 0 ? "PASS" : "FAIL");
+    const unsigned ignored = (unsigned)Unity.TestIgnores;
+    ESP_LOGI(TAG, "SELFTEST end module=%s board=%s sha=%s tests=%u failed=%u ignored=%u result=%s",
+             module, board_name(), selftest_git_sha, tests, failed, ignored, failed == 0 ? "PASS" : "FAIL");
     return failed == 0;
 }
 
@@ -93,6 +95,14 @@ static int console_read_byte(int timeout_ms)
 #endif
 }
 
+// idf.py monitor 不做本地回显, 这里把被接受的按键写回串口, 让人知道输入已经收到.
+static void echo_answer(int c)
+{
+    (void)fputc(c, stdout);
+    (void)fputc('\n', stdout);
+    (void)fflush(stdout);
+}
+
 int selftest_ask_yes_no(const char *prompt, int timeout_ms)
 {
     console_input_init();
@@ -108,21 +118,23 @@ int selftest_ask_yes_no(const char *prompt, int timeout_ms)
         const int c = console_read_byte(100);
         if (c == 'y' || c == 'Y') {
             answer = 1;
+            echo_answer(c);
             break;
         }
         if (c == 'n' || c == 'N') {
             answer = 0;
+            echo_answer(c);
             break;
         }
     }
     return answer;
 }
 
-bool selftest_human_check(const char *module, const char *item, const char *prompt, int timeout_ms)
+int selftest_human_check(const char *module, const char *item, const char *prompt, int timeout_ms)
 {
     const int answer = selftest_ask_yes_no(prompt, timeout_ms);
     const char *result = (answer == 1) ? "yes" : (answer == 0) ? "no" : "pending";
     ESP_LOGI(TAG, "SELFTEST human module=%s board=%s item=%s result=%s",
              module, board_name(), item, result);
-    return answer == 1;
+    return answer;
 }
