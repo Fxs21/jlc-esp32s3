@@ -111,14 +111,15 @@
 | LCD_TE | `GPIO13` | 用户确认;当前保留硬件事实,默认不启用 TE wait |
 | LCD_BACKLIGHT GPIO | `GPIO_NUM_NC` | AMOLED 不使用独立 PWM 背光 |
 | SPI host | `SPI2_HOST` | 当前 BSP display 使用 |
-| 色彩格式 | RGB565,16bpp | native stream 为 high-byte-first RGB565 |
+| 色彩格式 | RGB565,16bpp | native stream 为 high-byte-first RGB565;人工项 color-sweep 真机确认 (2026-09-24, sha `57e98bd`) |
 | 分辨率 | `466 x 466` | 官方 BSP / Arduino pin 表 |
-| gap/offset | x gap `0x06`,y gap `0` | 当前 BSP 设置 |
+| gap/offset | x gap `0x06`,y gap `0` | 当前 BSP 设置;人工项 edge-marker 确认无整列偏移 (2026-09-24, sha `57e98bd`) |
 | LVGL dirty alignment | `2 x 2` | 当前 BSP rounder 保证 x/y 偶数起点和奇数终点 |
 
 ### Display 初始化要点
 
 - 当前 BSP 使用官方 `esp_lcd_co5300` QSPI panel driver,panel 生命周期在 `auras3/display.c` 中统一管理,backlight 和 display 通过 ref_count 共享.
+- display 自检真机通过 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS): 覆盖 desc,open/close/重开,参数校验,传输完成回调计数,以及 color-sweep,frame-centered,edge-marker 三个人工项;期间修复 close 未归零 ref_count 导致重开时 panel 为空的缺陷.
 - CO5300 init table 已按厂家 QSPI/RGB565 序列收敛: `FE 00`,`C4 80`,`3A 55`,`35 00`,`53 20`,`51 00`,`63 FF`,`2A 00 06 01 D7`,`2B 00 00 01 D1`,`11` delay `60ms`,`29`.
 - 厂家序列使用 `51 FF` 直接满亮;当前 BSP 保留 `51 00`,避免 init 阶段亮脏首帧,由 UI/backlight API 后续设置亮度.
 - `bsp_display` public API 只提供 native async transfer + wait,不提供 `fill` 或 public host-order writer.
@@ -290,7 +291,7 @@ temp      C: 33.71
 | BSP 模块 | 当前状态 | 依据 |
 |---|---|---|
 | `bsp_board` | 已实现 | shell `bsp info` 已确认 desc.present: display,touch,backlight,sdcard,gnss,imu,audio,pmu 为 true,camera 为 false |
-| `bsp_display` | 已实现 | CO5300 QSPI native async transfer,UI 真机确认 |
+| `bsp_display` | 已实现 | CO5300 QSPI native async transfer,真机确认 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS);UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL demo widgets 真机确认 |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping |
 | `bsp_touch` | 已实现 | CST9217,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh touch auras3`, 5/5 PASS) |

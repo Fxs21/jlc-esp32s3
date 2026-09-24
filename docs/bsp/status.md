@@ -16,13 +16,14 @@
 
 - `test/` 自检工程落地: 统一入口 `test/bsp.sh`,公共骨架 `test/selftest/`,约定见 `test/README.md`.
 - AuraS3 前三个模块走完新式自检闭环,真机 `PASS` (2026-09-23, sha `99a464c`): `imu` 6/6,`sdcard` 8/8,`touch` 5/5;对应例程 `03_QMI8658`,`04_SD_MMC`,`07_Touch` 已核对删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
-- 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,imu,audio,camera,gnss;AuraS3 display,backlight,audio,pmu;两板 shell 调试入口和 UI 正常.
+- AuraS3 `display` 走完新式自检,真机 `PASS` (2026-09-24, sha `57e98bd`): 7/7,含 3 个人工项;期间修复 AuraS3 panel 引用计数 (close 未归零) 让重开拿到空 panel 的缺陷;例程 `05_LVGL_WITH_RAM` 同时覆盖 `ui`,待 `ui` 验证后一起删.
+- 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,imu,audio,camera,gnss;AuraS3 backlight,audio,pmu;两板 shell 调试入口和 UI 正常.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
 
 ## 未验证 / 暂停
 
-- AuraS3 除 `imu` / `sdcard` / `touch` 外的模块还没走新式自检: `test/` 下 `audio`,`camera`,`pmu`,`shell`,`ui` 仍是迁移前写法 (`TEST START` / `TEST PASS`),`display`,`backlight`,`gnss` 和诊断用 `i2c` 的 app 尚未建立.
+- AuraS3 除 `imu` / `sdcard` / `touch` / `display` 外的模块还没走新式自检: `test/` 下 `audio`,`camera`,`pmu`,`shell`,`ui` 仍是迁移前写法 (`TEST START` / `TEST PASS`),`backlight`,`gnss` 和诊断用 `i2c` 的 app 尚未建立.
 - AuraS3 GNSS: 板上未贴模组 (原理图预留),只确认未接器件时 shell `gnss read` 返回超时.
 - AuraS3 audio full-duplex (同时 playback + record) 未真机验证;`supports_full_duplex` 当前两板声明 true.
 - AuraS3 `audio rec-rms` 的 MIC1/MIC2 RMS 未补测.
@@ -33,7 +34,7 @@
 
 ## 下一步
 
-1. 阶段4 (AuraS3 铺开): 把 `display`,`backlight`,`ui`,`pmu`,`audio` 按自检骨架补判据并真机复测;`gnss` 硬件缺失,自检输出 `SKIP`;`camera` 不适用,输出 `SKIP`.
+1. 阶段4 (AuraS3 铺开): 把 `backlight`,`ui`,`pmu`,`audio` 按自检骨架补判据并真机复测 (display 已完成);`gnss` 硬件缺失,自检输出 `SKIP`;`camera` 不适用,输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;剩余例程 `01_AXP2101`,`02_PCF85063`,`05_LVGL_WITH_RAM`,`06_I2SCodec`.
 3. 阶段6 (DoerS3): 用同一套自检 app 复测全部模块.
 4. `AGENTS.md` §6 与本节验证规则冲突的两处待改: "简单 I2C/UART 外设的验证合并到 shell 命令,不保留独立 test_app",以及 shell 承担硬件测试的表述.
