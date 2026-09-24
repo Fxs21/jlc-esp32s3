@@ -15,8 +15,9 @@ if(NOT _selftest_sha)
 endif()
 
 # 工作区有未提交改动时打 -dirty 后缀: 此时日志不能单独作为验证证据.
+# 未跟踪文件也要算改动 (新 app 在被提交前全是未跟踪文件); 长期未跟踪的 components/x-track 排除.
 execute_process(
-    COMMAND git status --porcelain --untracked-files=no
+    COMMAND git status --porcelain --untracked-files=normal -- . ":(exclude)components/x-track"
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../.."
     OUTPUT_VARIABLE _selftest_dirty
     OUTPUT_STRIP_TRAILING_WHITESPACE
