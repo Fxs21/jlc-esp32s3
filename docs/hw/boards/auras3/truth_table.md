@@ -144,6 +144,7 @@
 - AuraS3 不复用 DoerS3 LEDC backlight driver.
 - `bsp_backlight_open()` 是 AMOLED brightness proxy,不在 public API 泄露 CO5300 细节.
 - `bsp_ui_set_backlight(ui, percent)` 是 app UI 推荐入口.
+- 亮度映射真机确认 (2026-09-24, sha `129b1ca`, `test/bsp.sh backlight auras3`, 6/6 PASS): 100/50/10/0% 四档目视逐档变暗,0% 接近全黑,0% -> 100% 能恢复;实测硬件值 10% -> `25`,50% -> `127`,100% -> `255`;`set_percent(>100)` 收敛到 100.
 
 ## 5. Touch, CST9217
 
@@ -293,7 +294,7 @@ temp      C: 33.71
 | `bsp_board` | 已实现 | shell `bsp info` 已确认 desc.present: display,touch,backlight,sdcard,gnss,imu,audio,pmu 为 true,camera 为 false |
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,真机确认 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS);UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL demo widgets 真机确认 |
-| `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping |
+| `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping,真机确认 (2026-09-24, sha `129b1ca`, `test/bsp.sh backlight auras3`, 6/6 PASS) |
 | `bsp_touch` | 已实现 | CST9217,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh touch auras3`, 5/5 PASS) |
 | `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh sdcard auras3`, 8/8 PASS) |
 | `bsp_imu` | 已实现 | QMI8658,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh imu auras3`, 6/6 PASS) |
