@@ -122,6 +122,7 @@
 - display 自检真机通过 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS): 覆盖 desc,open/close/重开,参数校验,传输完成回调计数,以及 color-sweep,frame-centered,edge-marker 三个人工项;期间修复 close 未归零 ref_count 导致重开时 panel 为空的缺陷.
 - CO5300 init table 已按厂家 QSPI/RGB565 序列收敛: `FE 00`,`C4 80`,`3A 55`,`35 00`,`53 20`,`51 00`,`63 FF`,`2A 00 06 01 D7`,`2B 00 00 01 D1`,`11` delay `60ms`,`29`.
 - 厂家序列使用 `51 FF` 直接满亮;当前 BSP 保留 `51 00`,避免 init 阶段亮脏首帧,由 UI/backlight API 后续设置亮度.
+- 每次 open 都会做硬件 reset: 驱动把 RST 拉低 `10 ms`, 拉高后再等 `150 ms` 才发第一条命令, 亮度 `51 00` 排在 6 条命令之后. 亮度 0 的黑屏上反复 open/close 能看见每次一次亮闪(2026-09-29, `test/ui` 观察); 成因 (复位后的默认亮度或 GRAM 残留) 未逐帧确认, 测试侧先按"ui 全程只 open 一次"规避.
 - `bsp_display` public API 只提供 native async transfer + wait,不提供 `fill` 或 public host-order writer.
 - AuraS3 native display contract 是 high-byte-first RGB565 byte stream;LVGL flush 必须执行 `lv_draw_sw_rgb565_swap()`.
 - CO5300 QSPI 局部刷新区域需要 2 像素对齐: invalid area 的 `x1/y1` 向下取偶数,`x2/y2` 向上扩到奇数;未对齐时 LVGL demo 动态区域会出现残留.

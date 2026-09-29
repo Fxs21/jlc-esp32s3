@@ -11,8 +11,9 @@
 - 大缓冲不要放栈上: `app_main` 任务栈只有几 KB, KB 级数组会先冲掉堆内存再以
   `Interrupt wdt timeout` panic 收场; 放 `static` 或用堆分配.
 - `sdkconfig.defaults` 自足: 每个 app 需要的配置全部写在自己文件里, 不从根工程继承;
-  项目基线 (target, Flash 大小, 分区表, CPU 频率, 主任务栈, FATFS) 要抄全,
-  漏项会造成与 BSP 无关的"配置型假失败".
+  公共基线 (target, Flash 大小, 分区表, CPU 频率, 主任务栈) 要抄全,
+  漏项会造成与 BSP 无关的"配置型假失败"; 外设专用配置 (如 FATFS 的 LFN/代码页)
+  只写在用到的 app (`sdcard`, `shell`) 里.
 - `sha` 是构建期注入的 git 指纹; 带 `-dirty` 后缀说明构建时工作区有未提交改动, 此时日志不能单独作为验证证据.
 
 ## 输出标记
