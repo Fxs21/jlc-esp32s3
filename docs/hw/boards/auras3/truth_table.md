@@ -28,7 +28,7 @@
 | Audio playback codec | ES8311 | 真机 `i2c_scan` 和 `audio tone` 已确认 |
 | Audio record codec | ES7210 | 真机 `i2c_scan` 已确认;open path 已确认 |
 | PMU | AXP2101 | 真机 `i2c_scan` 和 `pmu` test 已确认;当前 BSP 提供只读 public API |
-| RTC | PCF85063 | 真机 `i2c_scan` 已确认;当前无 BSP public API |
+| RTC | PCF85063ATL | 真机 `i2c_scan` 已确认;`bsp_rtc` 读写时间已实现 |
 | IO expander | TCA9554PWR | 真机 `i2c_scan` 地址 `0x20`;P7 用于 GPS reset |
 | SD card | 1-bit SDMMC | CLK=GPIO2, CMD=GPIO1, D0=GPIO3;真机确认 |
 | GNSS | LC76GABMD (未贴) | 原理图预留模组位和 UART/reset 网络;板上未贴器件,无法验证 |
@@ -248,15 +248,21 @@ temp      C: 33.71
 
 | 项目 | 真值 | 来源/备注 |
 |---|---|---|
-| 芯片 | PCF85063 | Arduino RTC demo / datasheet / 真机 scan |
+| 芯片 | PCF85063ATL | Arduino RTC demo / datasheet / 真机 scan |
 | 总线 | 主 I2C | Arduino demo 使用 `Wire.begin(IIC_SDA,IIC_SCL)` |
 | I2C 地址 | `0x51` | AuraS3 真机 `i2c_scan` 确认 |
-| interrupt/CLKOUT | TCA9554 P3 `RTC_INT` | 用户确认 |
+| VDD | AXP2101 `RTCLDO`,网络 `VCC-RTC` | 原理图 page 1;RTCLDO 在 PMU 各状态下保持输出,无软件开关 |
+| 备份供电 | AXP2101 `VBACKUP` 接电池侧网络 `VBAT2` (`CHG_RTC`) | 原理图 page 1;无电池时拔 USB 预期丢时,待实测 |
+| interrupt | `INT` (pin 4,open-drain) -> TCA9554 P3 `EXIO3` | 原理图 page 1;TCA9554 输入自带 100 kΩ 内部上拉 |
+| 到 SoC 的中断线 | 无 | TCA9554 自身 `INT` 只经 R19 10K 上拉到 VCC3V3,未接 ESP32 GPIO;事件只能轮询 |
+| CLKOUT | 未连接 | 原理图 page 1,pin 9 标 n.c. |
 
-### RTC 实现建议
+### RTC 实现
 
-- 当前项目没有 RTC public BSP API,第一阶段不加入.
-- 如果应用需要时间保持,后续单独设计 `bsp_rtc` 或交给应用层 driver.
+- `bsp_rtc` public API 已实现: 读写时间 + OS 丢时标记,见 `components/bsp/include/bsp_rtc.h`.
+- driver 强制 24 小时制,写秒寄存器清 OS,并按日期重算 weekday;越界时间字段拒绝写入.
+- 不做 alarm / timer / CLKOUT / ppm offset / RAM byte: 没有到 SoC 的中断线,且 CLKOUT 未连接.
+- 无电池时"掉电走时"无法验证;`test/rtc` 只覆盖可自动判定的部分,掉电保持留待装电池后补测.
 
 ## 11. GNSS
 
@@ -304,7 +310,7 @@ temp      C: 33.71
 | `bsp_gnss` | 已实现但未硬件验证 | 模组未贴装,自检 3 s 无 NMEA 输出 `SKIP` (2026-09-30, sha `5f4674c`) |
 | `bsp_pmu` | 已实现 | AXP2101 只读 status/events,KEY2 和电池事件真机确认 |
 | `bsp_camera` | unsupported | 用户确认无 camera;自检输出 `SKIP` (2026-09-30, sha `5f4674c`) |
-| RTC | 暂缓 | 当前无 public BSP API |
+| `bsp_rtc` | 已实现,待复测入档 | PCF85063ATL 读写时间 + OS 标志;`test/rtc` 自检 app 落地 |
 | TCA9554PWR | 内部 helper 已接入 | 当前用于 GNSS reset 和 input default setup |
 
 ## 14. 例程对照结论

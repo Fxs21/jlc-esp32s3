@@ -23,6 +23,7 @@
 | gnss | `bsp_gnss_*` | MAX-M10S,UART1,`38400` | 原理图预留,板上未贴模组 |
 | camera | `bsp_camera_*` | GC0308 DVP,需 `CONFIG_BSP_ENABLE_CAMERA=y` | 无硬件,返回 `ESP_ERR_NOT_SUPPORTED` |
 | pmu | `bsp_pmu_*` | 无,返回 `ESP_ERR_NOT_SUPPORTED` | AXP2101 `0x34`,只读 |
+| rtc | `bsp_rtc_*` | 无,返回 `ESP_ERR_NOT_SUPPORTED` | PCF85063ATL `0x51`,读写时间 |
 | i2c 诊断 | `bsp_i2c_acquire/probe/scan` | I2C0,SDA `GPIO1`,SCL `GPIO2` | I2C1,SDA `GPIO15`,SCL `GPIO14` |
 
 能力判断统一走 `desc`:
@@ -62,9 +63,12 @@
 
 - `bsp_gnss_read()` 返回 UART 原始字节,不承诺结构化定位结果.
 
-### RTC 尚未进入 public API
+### RTC 只承诺读写时间
 
-- 当前没有 `bsp_rtc`;AuraS3 的 PCF85063 只是硬件事实,未承诺任何 API.
+- `bsp_rtc_get_time()` 用 `valid_out` 报告芯片 OS 标志: `false` 表示掉电丢时,时间字段不可信.
+- `bsp_rtc_set_time()` 清 OS 标志并重算 weekday;越界字段返回 `ESP_ERR_INVALID_ARG`,不写芯片.
+- 固定 24 小时制;不做 alarm,timer,CLKOUT,ppm offset,`RAM byte`,也不提供与系统时间同步的 helper.
+- 事件中断不做: `RTC_INT` 只到 TCA9554 `EXIO3`,没有到 SoC 的中断线;`CLKOUT` 未连接.
 
 ## 3. public API 一览
 
@@ -83,6 +87,7 @@
 | `bsp_gnss.h` | `bsp_gnss_get_desc` / `open` / `close` / `read` |
 | `bsp_camera.h` | `bsp_camera_get_desc` / `open` / `close` / `capture` / `release_frame` |
 | `bsp_pmu.h` | `bsp_pmu_get_desc` / `open` / `close` / `get_status` / `get_events` |
+| `bsp_rtc.h` | `bsp_rtc_get_desc` / `open` / `close` / `get_time` / `set_time` |
 | `bsp_i2c.h` | `bsp_i2c_acquire` / `release` / `probe` / `scan` |
 
 统一约定:

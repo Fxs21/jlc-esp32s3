@@ -34,6 +34,7 @@
 - AuraS3 触摸多点能力未真机确认,当前只承诺单点 (`max_points = 1`).
 - QMI8658 `CTRL1` 的 `BE` 位与手册 Table 22 描述不一致,当前沿用板厂小端解析;需要绝对精度时复测.
 - TE wait 默认不启用,后续研究参考 `docs/hw/auras3-display-te.md`.
+- AuraS3 RTC 掉电保持未验证: 板上无备份电池 (`VBACKUP` 接 `VBAT2`),拔电丢时是预期行为,装电池后补测.
 - `docs/bsp/design.md` §6 的 Audio / PMU 两段复核暂停,待后续设计时一起处理,待改点见"下一步".
 
 ## 下一步
@@ -41,9 +42,8 @@
 1. 阶段4 (AuraS3 铺开): 剩余 `audio` 按自检骨架补判据并真机复测;`pmu` 待电池到位;`gnss` 待模组贴装,当前自检输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;剩余例程 `01_AXP2101`,`02_PCF85063`,`06_I2SCodec`.
 3. 阶段6 (DoerS3): 用同一套自检 app 复测全部模块.
-4. `AGENTS.md` §6 与本节验证规则冲突的两处待改: "简单 I2C/UART 外设的验证合并到 shell 命令,不保留独立 test_app",以及 shell 承担硬件测试的表述.
-5. PMU: 先做 internal-only software power-off 验证 (USB,仅电池,USB+电池三种场景和 `KEY2` 重新开机行为),再决定是否增加 public `shutdown` API.
-6. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
-7. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.
-8. 设计 `bsp_rtc` public API 前,先确认 `PCF85063` 的实际产品需求.
-9. 复核 `docs/bsp/design.md` §6 的 Audio / PMU 两段. 已记录待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.
+4. PMU: 先做 internal-only software power-off 验证 (USB,仅电池,USB+电池三种场景和 `KEY2` 重新开机行为),再决定是否增加 public `shutdown` API.
+5. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
+6. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.
+7. RTC: 自检 app 已落地,首轮真机 5/5 PASS (sha 带 `-dirty`);干净 sha 复测后入档 truth table §13 和本节"已完成".
+8. 复核 `docs/bsp/design.md` §6 的 Audio / PMU 两段. 已记录待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.

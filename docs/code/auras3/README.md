@@ -5,7 +5,7 @@ Waveshare ESP32-S3-Touch-AMOLED-1.75 官方示例包中的 ESP-IDF 例程 `01`~`
 | 例程 | 内容 | 对应 BSP 能力 | 状态 |
 |---|---|---|---|
 | `01_AXP2101` | AXP2101 PMU | `bsp_pmu` | 保留 |
-| `02_PCF85063` | PCF85063A RTC | 未接入 BSP | 保留 |
+| `02_PCF85063` | PCF85063A RTC | `bsp_rtc` | 保留,待对照 |
 | `03_QMI8658` | QMI8658 IMU | `bsp_imu` | 已核对删除 |
 | `04_SD_MMC` | SD 卡 | `bsp_sdcard` | 已核对删除 |
 | `05_LVGL_WITH_RAM` | QSPI 面板 + LVGL | `bsp_ui` | 已核对删除 |

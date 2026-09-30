@@ -47,8 +47,8 @@
 
 ## 6. 验证原则
 
-- 复杂能力 (多外设组合,需要人工观察) 应有独立 `test/<name>`,例如 `ui`,`camera`,`audio`,`pmu`.
-- 简单 I2C/UART 外设 (如 IMU,GNSS) 和通用调试能力 (backlight,SD) 的验证合并到 shell 命令,不保留独立 test_app.
+- 每个模块一个独立 `test/<module>` 自检 app;判据只有 `SELFTEST` 汇总行,人工项按 `SELFTEST human` 记录,模块在该板上不存在时输出 `SKIP`.
+- shell 只保留调试能力 (信息查询,寄存器/总线读写),不承担硬件验收,也不作为任何模块的通过判据.
 - test_app 只依赖公开 BSP API,不 include board port 或私有 driver 头文件.
 - 自动化优先验证可构建,可运行的最小路径;需要人工动作的测试应在日志中明确提示.
 - 无法自动验证的项必须标注并写明缺什么条件才能验证: 硬件事实类写入对应 truth table,未确认项标 `待真机确认` 或列入 `待裁决项`;验证进度类写入 `docs/bsp/status.md` 的 `## 下一步`.

@@ -44,6 +44,7 @@ endif()
 # Register new stubs here; boards list what they lack in BSP_BOARD_UNSUPPORTED.
 set(BSP_CAPABILITY_STUB_camera "src/common/unsupported/camera_unsupported.c")
 set(BSP_CAPABILITY_STUB_pmu "src/common/unsupported/pmu_unsupported.c")
+set(BSP_CAPABILITY_STUB_rtc "src/common/unsupported/rtc_unsupported.c")
 
 foreach(capability IN LISTS BSP_BOARD_UNSUPPORTED)
     if(NOT DEFINED BSP_CAPABILITY_STUB_${capability})

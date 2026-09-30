@@ -13,6 +13,7 @@
 #include "bsp_gnss.h"
 #include "bsp_imu.h"
 #include "bsp_pmu.h"
+#include "bsp_rtc.h"
 #include "bsp_sdcard.h"
 #include "bsp_touch.h"
 #include "esp_check.h"
@@ -123,6 +124,7 @@ static int cmd_bsp(int argc, char **argv)
     const bsp_audio_desc_t *audio = bsp_audio_get_desc();
     const bsp_pmu_desc_t *pmu = bsp_pmu_get_desc();
     const bsp_camera_desc_t *camera = bsp_camera_get_desc();
+    const bsp_rtc_desc_t *rtc = bsp_rtc_get_desc();
 
     if (board != NULL) {
         printf("board: %s (id=%d)\n", board->name, (int)board->id);
@@ -141,6 +143,7 @@ static int cmd_bsp(int argc, char **argv)
     printf("audio: present=%s\n", yes_no(audio != NULL && audio->present));
     printf("pmu: present=%s\n", yes_no(pmu != NULL && pmu->present));
     printf("camera: present=%s\n", yes_no(camera != NULL && camera->present));
+    printf("rtc: present=%s\n", yes_no(rtc != NULL && rtc->present));
     return 0;
 }
 

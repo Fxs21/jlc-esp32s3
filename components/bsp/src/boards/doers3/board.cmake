@@ -12,6 +12,7 @@ set(BSP_BOARD_SRCS
 
 set(BSP_BOARD_UNSUPPORTED
     "pmu"
+    "rtc"
 )
 
 if(CONFIG_BSP_ENABLE_CAMERA)

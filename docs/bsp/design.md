@@ -176,6 +176,14 @@ driver 与 board port 的分工:
 - public status 暴露 VBUS,电池,充电,电压和温度,不暴露 AXP2101 raw register 或 TCA9554 raw 电平.
 - raw IRQ / raw status 只能作为 bring-up 临时调试手段,结论确认后应删除或留在 internal-only debug,不能进入稳定 public API.
 
+### RTC
+
+- RTC API 只表达读写时间和 OS 丢时标记: `open` / `close` / `get_time` / `set_time`.
+- AuraS3 board port 直接实现 `bsp_rtc_*`;DoerS3 的 unsupported stub 由 `src/common/unsupported/rtc_unsupported.c` 提供.
+- `get_time()` 用 `valid_out` 报告 OS 标志;`set_time()` 清 OS 并重算 weekday,越界字段直接拒绝.
+- 固定 24 小时制;不做 alarm / timer / CLKOUT / ppm offset / RAM byte: 没有到 SoC 的中断线,CLKOUT 未连接.
+- 不提供与系统时间同步的 helper: 时间基准和时区由 app 层决定.
+
 ## 7. 错误语义
 
 公共 API 统一使用以下错误含义:
@@ -230,7 +238,7 @@ CONFIG_BSP_ENABLE_CAMERA
 
 ## 10. Test App 规则
 
-验证范围划分 (哪些能力进 test_app,哪些合并到 shell) 和 test_app 的依赖边界见 `AGENTS.md` §6;本节只列工程机制.
+test_app 的判据, 使用方式和依赖边界见 `AGENTS.md` §6 和 `test/README.md`;本节只列工程机制.
 
 规则:
 
@@ -243,7 +251,7 @@ CONFIG_BSP_ENABLE_CAMERA
 - 需要额外 managed component 的 app 在自己的 `main/idf_component.yml` 声明依赖,例如 camera app 的 `espressif/esp32-camera`.
 - 删除或暂停的实验能力不保留长期 test_app 噪声.
 
-验证入口命令见 `docs/README.md`.
+验证入口和使用方式见 `test/README.md`.
 
 ## 11. Shell 调试边界
 

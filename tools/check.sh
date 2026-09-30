@@ -41,6 +41,7 @@ bad_public_types = [
     "i2s_chan_handle_t",
     "qmi8658_",
     "pca9557_",
+    "pcf85063_",
 ]
 
 text_suffixes = {

@@ -7,6 +7,7 @@ set(BSP_BOARD_SRCS
     "src/boards/auras3/gnss.c"
     "src/boards/auras3/sdcard.c"
     "src/boards/auras3/pmu.c"
+    "src/boards/auras3/rtc.c"
     "src/boards/auras3/internal/auras3_ioexp.c"
 )
 
@@ -21,11 +22,13 @@ set(BSP_BOARD_DRIVERS
     "src/drivers/imu/qmi8658.c"
     "src/drivers/ioexp/tca9554.c"
     "src/drivers/power/axp2101.c"
+    "src/drivers/rtc/pcf85063.c"
 )
 
 set(BSP_BOARD_PRIV_INCLUDE_DIRS
     "src/boards/auras3/internal"
     "src/drivers/power"
+    "src/drivers/rtc"
 )
 
 set(BSP_BOARD_PRIV_LINK_LIBS
