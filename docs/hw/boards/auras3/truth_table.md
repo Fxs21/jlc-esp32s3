@@ -270,7 +270,7 @@ temp      C: 33.71
 
 ### GNSS 注意事项
 
-- 当前硬件未连接 GPS,`gnss` test / shell `gnss read` 的 `no data` 不作为失败结论.
+- 模组未贴装,自检 `test/bsp.sh gnss auras3` 在 3 s 探测窗内无 NMEA 时输出 `SKIP`,不作为失败结论.
 - 等硬件连接后,优先验证 `38400` baud,TX/RX 方向和 `GPS_RST` 极性.
 - 现有 `bsp_gnss` public API 保持 UART/NMEA raw byte stream,不引入结构化定位 API.
 
@@ -293,7 +293,7 @@ temp      C: 33.71
 
 | BSP 模块 | 当前状态 | 依据 |
 |---|---|---|
-| `bsp_board` | 已实现 | shell `bsp info` 已确认 desc.present: display,touch,backlight,sdcard,gnss,imu,audio,pmu 为 true,camera 为 false |
+| `bsp_board` | 已实现 | shell `bsp info` 打印 desc.present: touch,backlight,imu,gnss,sdcard,audio,pmu 为 true,camera 为 false (2026-09-30, sha `5f4674c`);display 无 desc,见 `bsp_display` 行 |
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,真机确认 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS);UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL display/indev/背光组合通路,真机确认 (2026-09-30, sha `0430fbb`, `test/bsp.sh ui auras3`, 6/6 PASS) |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping,真机确认 (2026-09-24, sha `129b1ca`, `test/bsp.sh backlight auras3`, 6/6 PASS) |
@@ -301,9 +301,9 @@ temp      C: 33.71
 | `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh sdcard auras3`, 8/8 PASS) |
 | `bsp_imu` | 已实现 | QMI8658,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh imu auras3`, 6/6 PASS) |
 | `bsp_audio` | 已实现 | ES8311 tone 真机确认;ES7210 open 正常 |
-| `bsp_gnss` | 已实现但未硬件验证 | 模块未连接,暂不测 |
+| `bsp_gnss` | 已实现但未硬件验证 | 模组未贴装,自检 3 s 无 NMEA 输出 `SKIP` (2026-09-30, sha `5f4674c`) |
 | `bsp_pmu` | 已实现 | AXP2101 只读 status/events,KEY2 和电池事件真机确认 |
-| `bsp_camera` | unsupported | 用户确认无 camera |
+| `bsp_camera` | unsupported | 用户确认无 camera;自检输出 `SKIP` (2026-09-30, sha `5f4674c`) |
 | RTC | 暂缓 | 当前无 public BSP API |
 | TCA9554PWR | 内部 helper 已接入 | 当前用于 GNSS reset 和 input default setup |
 

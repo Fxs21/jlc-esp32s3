@@ -19,14 +19,16 @@
 - AuraS3 `display` 走完新式自检,真机 `PASS` (2026-09-24, sha `57e98bd`): 7/7,含 3 个人工项;期间修复 AuraS3 panel 引用计数 (close 未归零) 让重开拿到空 panel 的缺陷;例程 `05_LVGL_WITH_RAM` 同时覆盖 `ui`.
 - AuraS3 `backlight` 走完新式自检,真机 `PASS` (2026-09-24, sha `129b1ca`): 6/6,含 2 个人工项 (亮度分档, 0% -> 100% 恢复);期间修正 selftest 脏检查漏掉未跟踪文件的缺陷.
 - AuraS3 `ui` 走完新式自检,真机 `PASS` (2026-09-30, sha `0430fbb`): 6/6,含 1 个人工项 (内置 widgets demo 渲染完整, 触摸跟手);期间把 ui 改成全程只 open 一次,规避面板复位亮闪;例程 `05_LVGL_WITH_RAM` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
+- AuraS3 `shell` 走完新式自检,真机 `PASS` (2026-09-30, sha `5f4674c`): 4/4;自检结束后 repl 保留供人工调试;期间 `bsp info` 补回 `audio` / `pmu` / `camera` 三行 desc.
+- AuraS3 `camera`,`gnss` 自检 app 落地,真机复跑按预期输出 `SKIP` (2026-09-30, sha `5f4674c`): camera 板上无, GNSS 模组未贴装.
 - 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,imu,audio,camera,gnss;AuraS3 audio,pmu;两板 shell 调试入口和 UI 正常.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
 
 ## 未验证 / 暂停
 
-- AuraS3 除 `imu` / `sdcard` / `touch` / `display` / `backlight` / `ui` 外的模块还没走新式自检: `test/` 下 `audio`,`camera`,`pmu`,`shell` 仍是迁移前写法 (`TEST START` / `TEST PASS`),`gnss` 和诊断用 `i2c` 的 app 尚未建立.
-- AuraS3 GNSS: 板上未贴模组 (原理图预留),只确认未接器件时 shell `gnss read` 返回超时.
+- AuraS3 还没走新式自检的: `test/audio`,`test/pmu` 仍是迁移前写法 (`TEST START` / `TEST PASS`);诊断用 `i2c` app 未建立.
+- AuraS3 GNSS: 板上未贴模组 (原理图预留),贴装前 baud / TX,RX 方向 / reset 极性都无从验证,自检只能输出 `SKIP`.
 - AuraS3 audio full-duplex (同时 playback + record) 未真机验证;`supports_full_duplex` 当前两板声明 true.
 - AuraS3 `audio rec-rms` 的 MIC1/MIC2 RMS 未补测.
 - AuraS3 触摸多点能力未真机确认,当前只承诺单点 (`max_points = 1`).
@@ -36,7 +38,7 @@
 
 ## 下一步
 
-1. 阶段4 (AuraS3 铺开): 把 `pmu`,`audio` 按自检骨架补判据并真机复测 (display, backlight, ui 已完成);`gnss` 硬件缺失,自检输出 `SKIP`;`camera` 不适用,输出 `SKIP`.
+1. 阶段4 (AuraS3 铺开): 剩余 `audio` 按自检骨架补判据并真机复测;`pmu` 待电池到位;`gnss` 待模组贴装,当前自检输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;剩余例程 `01_AXP2101`,`02_PCF85063`,`06_I2SCodec`.
 3. 阶段6 (DoerS3): 用同一套自检 app 复测全部模块.
 4. `AGENTS.md` §6 与本节验证规则冲突的两处待改: "简单 I2C/UART 外设的验证合并到 shell 命令,不保留独立 test_app",以及 shell 承担硬件测试的表述.

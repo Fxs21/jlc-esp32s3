@@ -46,16 +46,4 @@ components/shell/                # 可选调试组件,BSP 不依赖它
 
 ## 验证入口
 
-```sh
-cd test
-./bsp.sh <app> <auras3|aura|doers3|doer> build
-./bsp.sh <app> <auras3|aura|doers3|doer> build flash monitor
-```
-
-当前 app: `audio`, `camera`, `pmu`, `shell`, `ui`.
-
-`imu`, `sdcard`, `gnss` 测试已合并到 shell 命令;board info 由 shell `bsp info` 验证,不保留独立 test_app.
-
-`ui` app 使用 `lv_demo_widgets()` 作为压力测试: UI task priority 6,stack 16384,LVGL log off.
-
-`bsp.sh` 会在 app 目录生成真实 `sdkconfig` 和 `build/`,切换 board 时自动清理 app-local `sdkconfig` 和 `build/`.
+自检工程的使用方式, 输出格式, `sdkconfig.defaults` 约定和 `sha` 语义见 `test/README.md`;每个模块的自检 app 在 `test/<module>/`, 统一入口是 `test/bsp.sh`.
