@@ -21,6 +21,7 @@
 - AuraS3 `ui` 走完新式自检,真机 `PASS` (2026-09-30, sha `0430fbb`): 6/6,含 1 个人工项 (内置 widgets demo 渲染完整, 触摸跟手);期间把 ui 改成全程只 open 一次,规避面板复位亮闪;例程 `05_LVGL_WITH_RAM` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
 - AuraS3 `shell` 走完新式自检,真机 `PASS` (2026-09-30, sha `5f4674c`): 4/4;自检结束后 repl 保留供人工调试;期间 `bsp info` 补回 `audio` / `pmu` / `camera` 三行 desc.
 - AuraS3 `camera`,`gnss` 自检 app 落地,真机复跑按预期输出 `SKIP` (2026-09-30, sha `5f4674c`): camera 板上无, GNSS 模组未贴装.
+- AuraS3 `rtc` 走完新式自检闭环,真机 `PASS` (2026-09-30, sha `f54f62a`): 5/5;期间新增 `bsp_rtc` public API 和 `test/rtc`,例程 `02_PCF85063` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
 - 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,imu,audio,camera,gnss;AuraS3 audio,pmu;两板 shell 调试入口和 UI 正常.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
@@ -40,10 +41,9 @@
 ## 下一步
 
 1. 阶段4 (AuraS3 铺开): 剩余 `audio` 按自检骨架补判据并真机复测;`pmu` 待电池到位;`gnss` 待模组贴装,当前自检输出 `SKIP`.
-2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;剩余例程 `01_AXP2101`,`02_PCF85063`,`06_I2SCodec`.
+2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;剩余例程 `01_AXP2101`,`06_I2SCodec`.
 3. 阶段6 (DoerS3): 用同一套自检 app 复测全部模块.
 4. PMU: 先做 internal-only software power-off 验证 (USB,仅电池,USB+电池三种场景和 `KEY2` 重新开机行为),再决定是否增加 public `shutdown` API.
 5. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
 6. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.
-7. RTC: 自检 app 已落地,首轮真机 5/5 PASS (sha 带 `-dirty`);干净 sha 复测后入档 truth table §13 和本节"已完成".
-8. 复核 `docs/bsp/design.md` §6 的 Audio / PMU 两段. 已记录待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.
+7. 复核 `docs/bsp/design.md` §6 的 Audio / PMU 两段. 已记录待改点: Audio 的 handle 共用措辞,desc 能力位说明,`S16_LE` / 16-bit / 8k-48k 约束;PMU 的 "只读" 措辞 (`open()` 实际会做 ADC / IRQ 最小使能),`bsp_pmu_config_t` 字段注释,`get_events()` 依赖 `enable_irq`.

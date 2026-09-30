@@ -310,7 +310,7 @@ temp      C: 33.71
 | `bsp_gnss` | 已实现但未硬件验证 | 模组未贴装,自检 3 s 无 NMEA 输出 `SKIP` (2026-09-30, sha `5f4674c`) |
 | `bsp_pmu` | 已实现 | AXP2101 只读 status/events,KEY2 和电池事件真机确认 |
 | `bsp_camera` | unsupported | 用户确认无 camera;自检输出 `SKIP` (2026-09-30, sha `5f4674c`) |
-| `bsp_rtc` | 已实现,待复测入档 | PCF85063ATL 读写时间 + OS 标志;`test/rtc` 自检 app 落地 |
+| `bsp_rtc` | 已实现 | PCF85063ATL 读写时间 + OS 标志,真机确认 (2026-09-30, sha `f54f62a`, `test/bsp.sh rtc auras3`, 5/5 PASS) |
 | TCA9554PWR | 内部 helper 已接入 | 当前用于 GNSS reset 和 input default setup |
 
 ## 14. 例程对照结论
@@ -364,6 +364,21 @@ temp      C: 33.71
 | draw buffer 2 x `V_RES/4` (116 行),`MALLOC_CAP_DMA` | 2 x `V_RES/8` (59 行),优先 SRAM DMA,PSRAM 兜底 | 双缓冲总量相近 (216 KB vs 110 KB),59 行能放进内部 SRAM;屏载 perf monitor 实测静态 60 FPS / 复杂滑动 17 FPS |
 | LVGL 8 手写 port: esp_timer `2 ms` tick,task + mutex,app 自己注册 disp/indev | LVGL 9 + `bsp_ui` 一次 open (display/indev/backlight/tick 都在 BSP 内) | app 只调 `bsp_ui_open()` / `bsp_ui_process()`,不接触 LVGL port 细节 |
 | 触摸走 SensorLib 轮询 `getPoint(x, y, 2)` | `bsp_touch` INT 中断,单点 | 同 `07_Touch` 差异表 |
+
+### 02_PCF85063 -> `bsp_rtc`
+
+核对基线: 2026-09-30, sha `f54f62a`.
+
+一致项: 地址 `0x51`,主 I2C `GPIO15/GPIO14`;CTRL1 `0x00`,`0x04..0x0A` 秒..年 7 字节 burst;秒寄存器 bit7 为 OS 标志,写入时清 OS;BCD 编解码;默认 24 小时制 (CTRL1 bit1=0);初始化清 STOP (CTRL1 bit5);字段顺序和 weekday 计算 (0=Sunday) 一致;OS 报告语义一致 (例程 `available`,本仓库 `valid_out`).
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| alarm (get/set/enable/reset 和 `setAlarmBy*`),timer,CLKOUT (7 档),`stop`/`start` | 不做 | `INT` 只到 TCA9554 `EXIO3`,没有到 SoC 的中断线;`CLKOUT` 未连接 (见 §10) |
+| I2C 100 kHz | 400 kHz | 与全板 I2C 速率统一 |
+| init 读秒寄存器,BCD 秒 > 59 视为探测失败 | 只读 CTRL1 探测在线 | 该启发式会被总线毛刺和脏读数误判;探测只需确认芯片应答 |
+| `is24Hour` 从 CTRL1 读回,非 24H 才清 bit1 | `open()` 无条件强制 24 小时制 | public API 固定 24 小时制,不暴露 12H |
+| `setDateTime()` 不校验字段 | `set_time()` 校验 2000..2099 / 1..12 / 1..31 / 0..23 / 0..59 / 0..59 | 非法值写进芯片后无法区分"芯片故障"和"调用错误" |
+| weekday 读回解析成 `datetime.week` | public API 不暴露 weekday | 芯片 weekday 只是用户计数器,时间语义不依赖它 |
 
 ### 待办
 
