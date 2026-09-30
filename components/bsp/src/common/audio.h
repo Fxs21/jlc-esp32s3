@@ -19,14 +19,14 @@ extern "C" {
 typedef struct bsp_audio_common bsp_audio_common_t;
 
 typedef struct {
-    i2s_port_t  port;
-    gpio_num_t  mclk;
-    gpio_num_t  bclk;
-    gpio_num_t  ws;
-    gpio_num_t  dout;
-    gpio_num_t  din;
-    uint8_t     es8311_addr;
-    uint8_t     es7210_addr;
+    i2s_port_t port;
+    gpio_num_t mclk;
+    gpio_num_t bclk;
+    gpio_num_t ws;
+    gpio_num_t dout;
+    gpio_num_t din;
+    uint8_t    es8311_addr;
+    uint8_t    es7210_addr;
 } bsp_audio_pins_t;
 
 // PA control callback. Called with true=on, false=off. NULL if no PA.
@@ -47,17 +47,22 @@ void bsp_audio_common_deinit(bsp_audio_common_t *c);
 esp_err_t bsp_audio_common_play_start(bsp_audio_common_t *c, bsp_audio_pa_fn pa);
 esp_err_t bsp_audio_common_play_stop(bsp_audio_common_t *c, bsp_audio_pa_fn pa);
 esp_err_t bsp_audio_common_play_set_volume(bsp_audio_common_t *c, int volume);
+esp_err_t bsp_audio_common_play_set_mute(bsp_audio_common_t *c, bool mute);
 esp_err_t bsp_audio_common_play_write(bsp_audio_common_t *c,
-                                      const void *data, size_t len,
-                                      size_t *written_out, uint32_t timeout_ms);
+                                      const void *data,
+                                      size_t len,
+                                      size_t *written_out,
+                                      uint32_t timeout_ms);
 
 // Record.
 esp_err_t bsp_audio_common_record_start(bsp_audio_common_t *c);
 esp_err_t bsp_audio_common_record_stop(bsp_audio_common_t *c);
-esp_err_t bsp_audio_common_record_set_gain(bsp_audio_common_t *c, float gain_db);
+esp_err_t bsp_audio_common_record_set_gain(bsp_audio_common_t *c, uint32_t channel_mask, float gain_db);
 esp_err_t bsp_audio_common_record_read(bsp_audio_common_t *c,
-                                       void *data, size_t len,
-                                       size_t *read_out, uint32_t timeout_ms);
+                                       void *data,
+                                       size_t len,
+                                       size_t *read_out,
+                                       uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }

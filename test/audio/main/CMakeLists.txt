@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "test_bsp_audio.c"
-    PRIV_REQUIRES bsp
+    PRIV_REQUIRES selftest bsp
     INCLUDE_DIRS ""
 )

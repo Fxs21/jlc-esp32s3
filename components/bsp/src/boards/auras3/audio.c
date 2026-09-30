@@ -21,8 +21,12 @@ static const bsp_audio_desc_t s_desc = {
     .present = true,
     .has_playback = true,
     .has_record = true,
+    .has_loopback = true,
+    // test/audio 的回采用例真机确认: 播放 1 kHz 的同时录音, MIC3 回采通道上有该音.
     .supports_full_duplex = true,
     .shared_clock = true,
+    .sample_rate_min = 8000,
+    .sample_rate_max = 48000,
 };
 
 static const bsp_audio_pins_t s_pins = {
@@ -51,15 +55,16 @@ bsp_audio_config_t bsp_audio_default_config(void)
     return (bsp_audio_config_t) {
         .sample_rate = 16000,
         .bits_per_sample = 16,
-        .sample_format = BSP_AUDIO_SAMPLE_FORMAT_S16_LE,
+        .record_channel_mask = BSP_AUDIO_RECORD_CH_MIC1 | BSP_AUDIO_RECORD_CH_MIC2,
     };
 }
 
 esp_err_t bsp_audio_open(const bsp_audio_config_t *config, bsp_audio_handle_t *handle_out)
 {
     ESP_RETURN_ON_FALSE(handle_out != NULL, ESP_ERR_INVALID_ARG, TAG, "handle_out is null");
-    ESP_RETURN_ON_FALSE(!s_audio_open, ESP_ERR_INVALID_STATE, TAG, "audio already open");
     *handle_out = NULL;
+    ESP_RETURN_ON_FALSE(config != NULL, ESP_ERR_INVALID_ARG, TAG, "config is null");
+    ESP_RETURN_ON_FALSE(!s_audio_open, ESP_ERR_INVALID_STATE, TAG, "audio already open");
 
     esp_err_t ret = ESP_OK;
     struct bsp_audio_s *handle = calloc(1, sizeof(*handle));
@@ -143,6 +148,12 @@ esp_err_t bsp_audio_play_set_volume(bsp_audio_handle_t handle, int volume)
     return bsp_audio_common_play_set_volume(handle->common, volume);
 }
 
+esp_err_t bsp_audio_play_set_mute(bsp_audio_handle_t handle, bool mute)
+{
+    ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
+    return bsp_audio_common_play_set_mute(handle->common, mute);
+}
+
 esp_err_t bsp_audio_play_write(bsp_audio_handle_t handle, const void *data, size_t len, size_t *written_out, uint32_t timeout_ms)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
@@ -161,10 +172,10 @@ esp_err_t bsp_audio_record_stop(bsp_audio_handle_t handle)
     return bsp_audio_common_record_stop(handle->common);
 }
 
-esp_err_t bsp_audio_record_set_gain(bsp_audio_handle_t handle, float gain_db)
+esp_err_t bsp_audio_record_set_gain(bsp_audio_handle_t handle, uint32_t channel_mask, float gain_db)
 {
     ESP_RETURN_ON_FALSE(handle != NULL, ESP_ERR_INVALID_ARG, TAG, "handle is null");
-    return bsp_audio_common_record_set_gain(handle->common, gain_db);
+    return bsp_audio_common_record_set_gain(handle->common, channel_mask, gain_db);
 }
 
 esp_err_t bsp_audio_record_read(bsp_audio_handle_t handle, void *data, size_t len, size_t *read_out, uint32_t timeout_ms)
