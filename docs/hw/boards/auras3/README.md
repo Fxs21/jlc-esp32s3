@@ -30,7 +30,7 @@ Waveshare ESP32-S3-Touch-AMOLED-1.75.硬件真值 (pin,bus,地址,验证记录) 
 | `ESP-IDF-v5.4/08_ESP32-S3-Touch-AMOLED-1_75-esp-brookesia` | esp-brookesia 综合示例 |
 | `Firmware/` | 出厂固件 `ESP32-S3-Touch-AMOLED-1.75-FactoryOnly.bin` |
 
-ESP-IDF `01` ~ `07` 已按"保留 `main/` 源码和资源,剔除构建产物"的规则提取到 `docs/code/auras3/ESP-IDF-v5.4/`;其中已核对完毕的例程 (`03_QMI8658`,`04_SD_MMC`,`07_Touch`) 已删除,结论见 `truth_table.md` §14.
+ESP-IDF `01` ~ `07` 已按"保留 `main/` 源码和资源,剔除构建产物"的规则提取到 `docs/code/auras3/ESP-IDF-v5.4/`;其中已核对完毕的例程 (`03_QMI8658`,`04_SD_MMC`,`05_LVGL_WITH_RAM`,`07_Touch`) 已删除,结论见 `truth_table.md` §14.
 例程内 vendored 的 `components/` 一并保留;Arduino 示例,`08_...esp-brookesia` 和 `Firmware/` 未提取.
 原始 zip 已删除,需要时从官方来源重新下载.
 

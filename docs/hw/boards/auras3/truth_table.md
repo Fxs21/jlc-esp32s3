@@ -120,6 +120,7 @@
 
 - 当前 BSP 使用官方 `esp_lcd_co5300` QSPI panel driver,panel 生命周期在 `auras3/display.c` 中统一管理,backlight 和 display 通过 ref_count 共享.
 - display 自检真机通过 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS): 覆盖 desc,open/close/重开,参数校验,传输完成回调计数,以及 color-sweep,frame-centered,edge-marker 三个人工项;期间修复 close 未归零 ref_count 导致重开时 panel 为空的缺陷.
+- `bsp_ui` 自检真机通过 (2026-09-30, sha `0430fbb`, `test/bsp.sh ui auras3`, 6/6 PASS, 人工项 widgets-demo yes): 覆盖 LVGL display/indev/背光绑定,handle 独占,参数校验,`process()` 延时提示和刷帧计数;画面来源是 LVGL 内置 widgets demo,人工确认画面完整且触摸跟手;屏载 perf monitor 读数: 静态画面 60 FPS / CPU 3%,复杂页面滑动最低 17 FPS / CPU 98%.
 - CO5300 init table 已按厂家 QSPI/RGB565 序列收敛: `FE 00`,`C4 80`,`3A 55`,`35 00`,`53 20`,`51 00`,`63 FF`,`2A 00 06 01 D7`,`2B 00 00 01 D1`,`11` delay `60ms`,`29`.
 - 厂家序列使用 `51 FF` 直接满亮;当前 BSP 保留 `51 00`,避免 init 阶段亮脏首帧,由 UI/backlight API 后续设置亮度.
 - 每次 open 都会做硬件 reset: 驱动把 RST 拉低 `10 ms`, 拉高后再等 `150 ms` 才发第一条命令, 亮度 `51 00` 排在 6 条命令之后. 亮度 0 的黑屏上反复 open/close 能看见每次一次亮闪(2026-09-29, `test/ui` 观察); 成因 (复位后的默认亮度或 GRAM 残留) 未逐帧确认, 测试侧先按"ui 全程只 open 一次"规避.
@@ -294,7 +295,7 @@ temp      C: 33.71
 |---|---|---|
 | `bsp_board` | 已实现 | shell `bsp info` 已确认 desc.present: display,touch,backlight,sdcard,gnss,imu,audio,pmu 为 true,camera 为 false |
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,真机确认 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS);UI 真机确认 |
-| `bsp_ui` | 已实现 | LVGL demo widgets 真机确认 |
+| `bsp_ui` | 已实现 | LVGL display/indev/背光组合通路,真机确认 (2026-09-30, sha `0430fbb`, `test/bsp.sh ui auras3`, 6/6 PASS) |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping,真机确认 (2026-09-24, sha `129b1ca`, `test/bsp.sh backlight auras3`, 6/6 PASS) |
 | `bsp_touch` | 已实现 | CST9217,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh touch auras3`, 5/5 PASS) |
 | `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh sdcard auras3`, 8/8 PASS) |
@@ -344,6 +345,19 @@ temp      C: 33.71
 | 30 ms 轮询读点 | INT 下沿中断置位,`read()` 按需刷新寄存器并缓存,1.5 s 无上报清缓存 | 轮询占 I2C 带宽且延迟大;缓存避免重复读寄存器 |
 | `getPoint(x, y, 2)` 请求 2 点 | `max_points = 1` | 当前只承诺单点;多点能力未真机确认,见待办 |
 | `setMaxCoordinates(466, 466)` | `465` | 该值是镜像轴 (`x_max - x`),取 `466 - 1` 才能保证镜像后仍落在可报坐标范围内 |
+
+### 05_LVGL_WITH_RAM -> `bsp_ui` (QSPI 面板 + LVGL)
+
+一致项: 面板 pin 组和 QSPI 参数 (CS `GPIO12`,PCLK `GPIO38`,D0..D3 `GPIO4..7`,RST `GPIO39`,quad mode,max transfer 整屏 `466*466*2`);11 条 init 序列和取值 (`FE 00`,`C4 80`,`3A 55`,`35 00`,`53 20`,`63 FF`,`2A 00 06 01 D7`,`2B 00 00 01 D1`);`466x466` RGB565 16bpp;LVGL rounder 的 2 像素对齐规则 (x1/y1 向下偶数,x2/y2 向上奇数).
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| `esp_lcd_sh8601` 面板驱动 | `espressif/esp_lcd_co5300` | 屏实际控制器是 CO5300;SH8601 是同族,例程沿用了通用组件 |
+| init 里 `51 FF` 直接满亮 | `51 00`,首帧后由 `bsp_backlight` / `bsp_ui` 设置 | 避免上电亮脏首帧;percent 映射真机确认 (见 §4) |
+| `2B` 后延迟 `600 ms`,`11` 后延迟 `600 ms` | `2B` 无延迟,`11` 后 `60 ms` | CO5300 组件默认值;display/ui 自检和 demo 真机无异常,无需更长等待 |
+| draw buffer 2 x `V_RES/4` (116 行),`MALLOC_CAP_DMA` | 2 x `V_RES/8` (59 行),优先 SRAM DMA,PSRAM 兜底 | 双缓冲总量相近 (216 KB vs 110 KB),59 行能放进内部 SRAM;屏载 perf monitor 实测静态 60 FPS / 复杂滑动 17 FPS |
+| LVGL 8 手写 port: esp_timer `2 ms` tick,task + mutex,app 自己注册 disp/indev | LVGL 9 + `bsp_ui` 一次 open (display/indev/backlight/tick 都在 BSP 内) | app 只调 `bsp_ui_open()` / `bsp_ui_process()`,不接触 LVGL port 细节 |
+| 触摸走 SensorLib 轮询 `getPoint(x, y, 2)` | `bsp_touch` INT 中断,单点 | 同 `07_Touch` 差异表 |
 
 ### 待办
 
