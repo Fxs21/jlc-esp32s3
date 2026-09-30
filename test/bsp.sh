@@ -85,10 +85,13 @@ ensure_sdkconfig() {
         rm -rf build
     fi
 
-    if [ ! -f sdkconfig ]; then
+    if [ ! -f sdkconfig ] || [ sdkconfig.defaults -nt sdkconfig ]; then
         if [ -f build/CMakeCache.txt ] && grep -q 'sdkconfig.generated' build/CMakeCache.txt; then
             echo "legacy generated config detected, resetting build"
             rm -rf build
+        fi
+        if [ -f sdkconfig ]; then
+            echo "sdkconfig.defaults is newer, regenerating sdkconfig"
         fi
         write_sdkconfig
     fi

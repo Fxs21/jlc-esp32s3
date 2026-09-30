@@ -14,6 +14,8 @@
   公共基线 (target, Flash 大小, 分区表, CPU 频率, 主任务栈) 要抄全,
   漏项会造成与 BSP 无关的"配置型假失败"; 外设专用配置 (如 FATFS 的 LFN/代码页)
   只写在用到的 app (`sdcard`, `shell`) 里.
+  `bsp.sh` 在 `sdkconfig.defaults` 比本地 `sdkconfig` 新时重新生成 `sdkconfig`,
+  本地 menuconfig 的改动会被覆盖, 要留的配置写回 defaults.
 - `sha` 是构建期注入的 git 指纹; 带 `-dirty` 后缀说明构建时工作区有未提交改动, 此时日志不能单独作为验证证据.
 
 ## 输出标记

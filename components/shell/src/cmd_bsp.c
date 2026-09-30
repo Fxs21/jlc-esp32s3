@@ -6,10 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bsp_audio.h"
 #include "bsp_backlight.h"
 #include "bsp_board.h"
+#include "bsp_camera.h"
 #include "bsp_gnss.h"
 #include "bsp_imu.h"
+#include "bsp_pmu.h"
 #include "bsp_sdcard.h"
 #include "bsp_touch.h"
 #include "esp_check.h"
@@ -117,6 +120,9 @@ static int cmd_bsp(int argc, char **argv)
     const bsp_imu_desc_t *imu = bsp_imu_get_desc();
     const bsp_gnss_desc_t *gnss = bsp_gnss_get_desc();
     const bsp_sdcard_desc_t *sdcard = bsp_sdcard_get_desc();
+    const bsp_audio_desc_t *audio = bsp_audio_get_desc();
+    const bsp_pmu_desc_t *pmu = bsp_pmu_get_desc();
+    const bsp_camera_desc_t *camera = bsp_camera_get_desc();
 
     if (board != NULL) {
         printf("board: %s (id=%d)\n", board->name, (int)board->id);
@@ -132,6 +138,9 @@ static int cmd_bsp(int argc, char **argv)
     printf("imu: present=%s\n", yes_no(imu != NULL && imu->present));
     printf("gnss: present=%s\n", yes_no(gnss != NULL && gnss->present));
     printf("sdcard: present=%s\n", yes_no(sdcard != NULL && sdcard->present));
+    printf("audio: present=%s\n", yes_no(audio != NULL && audio->present));
+    printf("pmu: present=%s\n", yes_no(pmu != NULL && pmu->present));
+    printf("camera: present=%s\n", yes_no(camera != NULL && camera->present));
     return 0;
 }
 
