@@ -30,7 +30,7 @@
 
 当前可选 BSP 调试命令:
 
-- `bsp info` / `bsp desc`: 打印 BSP 能力摘要 (不含 display/camera/audio/PMU 信息 -- 此类复杂外设由自身 `test_app` 验证)
+- `bsp info` / `bsp desc`: 打印 board 和各外设 desc 的 `present` 摘要, 当前含 touch/backlight/imu/gnss/sdcard/audio/pmu/camera/rtc; display 无 desc 不列出, 复杂外设的详细验证由自身 `test_app` 负责
 - `imu read [count]`: 打开 IMU, 连续读取 `count` 次数据 (`data_ready` 轮询), 然后关闭; count 默认 1
 - `touch read`: 打开 touch, 读取一次触点, 然后关闭
 - `gnss read [count] [timeout_ms]`: 打开 GNSS, 连续读取 `count` 条 NMEA 语句 (`timeout_ms` 单次超时), 然后关闭; count 默认 1, 最大 100

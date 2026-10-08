@@ -25,7 +25,7 @@
 | Display 接口 | QSPI | 官方 BSP `CO5300_PANEL_BUS_QSPI_CONFIG` |
 | Touch | CST9217 | 官方 BSP include `esp_lcd_touch_cst9217.h` |
 | IMU | QMI8658 | 真机 `i2c_scan` 和 BSP test 已确认 |
-| Audio playback codec | ES8311 | 真机 `i2c_scan` 和 `audio tone` 已确认 |
+| Audio playback codec | ES8311 | 真机 `i2c_scan` + `test/bsp.sh audio auras3` 已确认 |
 | Audio record codec | ES7210 | 真机 `i2c_scan` 已确认;open path 已确认 |
 | PMU | AXP2101 | 真机 `i2c_scan` 和 `pmu` test 已确认;当前 BSP 提供只读 public API |
 | RTC | PCF85063ATL | 真机 `i2c_scan` 已确认;`bsp_rtc` 读写时间已实现 |
@@ -308,7 +308,7 @@ temp      C: 33.71
 
 | BSP 模块 | 当前状态 | 依据 |
 |---|---|---|
-| `bsp_board` | 已实现 | shell `bsp info` 打印 desc.present: touch,backlight,imu,gnss,sdcard,audio,pmu 为 true,camera 为 false (2026-09-30, sha `5f4674c`);display 无 desc,见 `bsp_display` 行 |
+| `bsp_board` | 已实现 | shell `bsp info` 打印 desc.present: touch,backlight,imu,gnss,sdcard,audio,pmu 为 true,camera 为 false (2026-09-30, sha `5f4674c`;rtc 行随 `f54f62a` 加入);display 无 desc,见 `bsp_display` 行 |
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,真机确认 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS);UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL display/indev/背光组合通路,真机确认 (2026-09-30, sha `0430fbb`, `test/bsp.sh ui auras3`, 6/6 PASS) |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping,真机确认 (2026-09-24, sha `129b1ca`, `test/bsp.sh backlight auras3`, 6/6 PASS) |

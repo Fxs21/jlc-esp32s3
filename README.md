@@ -22,12 +22,12 @@ BSP 是手段,不是目的. 目的有两个:
 
 | 目标板 | 状态 |
 |---|---|
-| DoerS3 | 主验证板. display,touch,backlight,sdcard,imu,audio,camera,gnss 全部真机通过 |
-| AuraS3 | 外设已接入并真机验证. 无 camera;GNSS 硬件未连接,待验证 |
+| DoerS3 | 主验证板. display,touch,backlight,sdcard,imu,camera,gnss 真机通过;audio 已对齐会话模型,但未按新式自检复测 |
+| AuraS3 | 除 pmu 外模块都走了新式自检;无 camera,GNSS 模组未贴装 |
 
 逐项能力见 `docs/bsp/capabilities.md`;进度见 `docs/bsp/status.md`,真机结论和测量数据见各板 truth table.
 
-验证入口是 `test/*`: `audio`,`camera`,`pmu`,`shell`,`ui`.
+每个模块的验证入口是 `test/<module>/` 自检 app, 统一入口 `test/bsp.sh`;清单和使用方式见 `test/README.md`.
 
 ## 3. 仓库构成
 
