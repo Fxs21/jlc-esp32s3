@@ -24,6 +24,7 @@
 - AuraS3 `rtc` 走完新式自检闭环,真机 `PASS` (2026-09-30, sha `f54f62a`): 5/5;期间新增 `bsp_rtc` public API 和 `test/rtc`,例程 `02_PCF85063` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
 - AuraS3 `audio` 走完新式自检闭环,真机 `PASS` (2026-10-08, sha `5b2bc27`): 10/10,1 项人工项 pending (台位未接喇叭, 响度待补测);期间把 audio 重做成会话模型 public API (三种 record mask, TDM 回采, full-duplex),例程 `06_I2SCodec` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
 - AuraS3 `pmu` 走完新式自检闭环,真机 `PASS` (2026-10-08, sha `90dc3f7-dirty`): 7 项 0 失败 1 ignored (未接电池, 插拔电池项 pending);期间修复 `open` 失败未清空 `handle_out`,以及"新 `open` 后 ADC 首轮转换未完成即断言"两处缺陷;软件关机 USB 场景真机验证: 断电成功, 无自动回电, 关机后短按 `KEY2` 可开机;例程 `01_AXP2101` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
+- AuraS3 `i2c` 走完新式自检, 真机 `PASS` (2026-10-08, sha `acfcff3-dirty`): 4/4; 扫描到 7 个设备与 truth table I2C 清单一致; 该 app 兼作总线诊断入口, 完整扫描表随日志输出.
 - 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,imu,audio,camera,gnss;两板 shell 调试入口和 UI 正常.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
@@ -31,7 +32,7 @@
 ## 未验证 / 暂停
 
 - AuraS3 `pmu` 电池相关项未验证: 无电池, 自检插拔电池项 `IGNORE`;软件关机只验证了 USB 场景, 仅电池与 USB+电池场景待电池到位.
-- 诊断用 `i2c` app 未建立.
+- AuraS3 `pmu` VBUS_INSERT/REMOVE 事件未验证: USB 串口同时供电和出日志, 制造不了 VBUS 拔插; 需要电池供电 + 独立日志通道的台位.
 - AuraS3 GNSS: 板上未贴模组 (原理图预留),贴装前 baud / TX,RX 方向 / reset 极性都无从验证,自检只能输出 `SKIP`.
 - AuraS3 audio 喇叭响度未验证: 台位未接喇叭, 自检人工项 pending;回采判据与喇叭无关, 接上喇叭后补测该人工项.
 - DoerS3 audio (含回采和 full-duplex) 未复测: board port 已对齐新设计, `supports_full_duplex` 暂为 `false`.
@@ -42,7 +43,7 @@
 
 ## 下一步
 
-1. 阶段4 (AuraS3 铺开): `pmu` 自检与 USB 场景软件关机已完成;剩余 `gnss` 待模组贴装,当前自检输出 `SKIP`.
+1. 阶段4 (AuraS3 铺开): `pmu` 自检与 USB 场景软件关机,`i2c` 总线自检已完成;剩余 `gnss` 待模组贴装,当前自检输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;AuraS3 例程 `01`~`07` 已全部核对删除.
 3. 阶段6 (DoerS3): 用同一套自检 app 复测全部模块.
 4. PMU: 仅电池 / USB+电池两种供电场景的软件关机行为待电池到位后验证 (USB 场景已完成, 记录见 `docs/hw/auras3-pmu-key.md`);验证入口是 `test/pmu` 自检结束后的引导步.

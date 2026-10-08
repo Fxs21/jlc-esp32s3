@@ -1,6 +1,8 @@
 // test/pmu: bsp_pmu 板级自检. 只使用 BSP public API; 判据是本文件的常量.
 // 电池相关项在没有电池时记为 pending; 软件关机是破坏性人工动作, 放在汇总行之后
 // 由操作者触发, 行为结论写进 docs/hw/auras3-pmu-key.md 和对应 truth table.
+// VBUS_INSERT/REMOVE 事件不在覆盖范围: USB 串口同时供电和出日志, 制造不了 VBUS
+// 拔插, 需要电池供电 + 独立日志通道的台位; 缺口记录在 docs/bsp/status.md.
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -143,6 +145,8 @@ TEST_CASE("pmu: null arguments rejected", "[pmu]")
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, bsp_pmu_close(NULL));
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, bsp_pmu_get_status(NULL, &status));
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, bsp_pmu_get_events(NULL, &events, false));
+    // 依赖契约"先校验 handle, 再做任何副作用": 实现必须把校验保持在最前,
+    // 否则这条用例会真的断板子的电.
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, bsp_pmu_power_off(NULL));
 
     open_pmu();

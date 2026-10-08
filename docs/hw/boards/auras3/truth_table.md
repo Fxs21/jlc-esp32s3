@@ -69,6 +69,8 @@
 | `0x5A` | CST9217 | 已确认 | touch controller |
 | `0x6B` | QMI8658 | 已确认 | IMU;WHOAMI register `0x00` 期望 `0x05` |
 
+- 自检 `test/i2c` (2026-10-08, sha `acfcff3-dirty`): 4/4 PASS; 扫描结果与上表 7 个设备一致, 总线上无其他在线地址.
+
 ## 2.1. IO expander, TCA9554PWR
 
 | 项目 | 真值 | 来源/备注 |
