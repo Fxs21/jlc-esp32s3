@@ -46,6 +46,17 @@
 
 固件应优先读取 AXP2101 的 `PKEY_SHORT` / `PKEY_LONG` IRQ 状态,而不是把 `KEY2` 当成普通 ESP32 GPIO,因为 `KEY2` 并没有直接接到 ESP32-S3 GPIO.
 
+### KEY2 时序语义 (AXP2101 `REG27H`, 手册 6.13.2.25)
+
+| 动作 | 阈值 | 结果 |
+|---|---|---|
+| 运行中快速点按 | < `IRQLEVEL` (默认 1.5 s) | 只产生 `PKEY_SHORT` 事件, 不断电 |
+| 运行中按住 | ≥ `IRQLEVEL` | 产生 `PKEY_LONG` 事件 |
+| 运行中按住不放 | ≥ `OFFLEVEL` (默认 6 s, 可配 4/6/8/10 s;受 `REG22H[1]` EFUSE 开关控制) | PMU 硬件关机 |
+| 关机状态下按住 | ≥ `ONLEVEL` (EFUSE, 128 ms~2 s) | 开机 |
+
+真机对照: 自检引导项的快速短按只锁存事件、板子继续运行 (2026-10-08);长按导致设备断开在 bring-up 已观察到,与 `OFFLEVEL` 行为一致;软件关机 (`REG10H[0]`, `bsp_pmu_power_off()`) 与按键时长无关,由 `test/pmu` 自检提示处输入 `y` 触发.
+
 ## SYS_OUT / EXIO4
 
 `SYS_OUT` 通过 `TCA9554` 的 `P4` / `EXIO4` 暴露给固件.从 KEY2/PWRON/NMOS 局部电路看,它更像与 KEY2/PWRON 状态相关的 readback/status 信号,而不是可控的系统电源 rail.
@@ -106,7 +117,7 @@ Bring-up 期间曾临时打印 raw IRQ status,并已经确认以下 AXP2101 IRQ 
 | `INTSTS2` / `0x49` | `0x20` | battery insert | `BSP_PMU_EVENT_BATTERY_INSERT` |
 | `INTSTS3` / `0x4A` | `0x08` | charge start | `BSP_PMU_EVENT_CHARGE_START` |
 
-因此,`AXP_IRQ=0` 但 `bsp_pmu_get_events()` 返回 0 并不一定是异常;可能只是 AXP2101 触发了 gauge SOC 更新或 KEY2 按下/松开边沿,而这些 raw IRQ 不属于当前 public BSP event.当前 public API 已删除 raw `INTSTS` 寄存器字段,只保留稳定的板级状态和已映射事件.
+Bring-up 期间出现过 `AXP_IRQ=0` 但 `bsp_pmu_get_events()` 返回 0 的情况:AXP2101 `REG40H` 复位默认把所有 IRQ 源打开,gauge SOC 更新或 KEY2 按下/松开边沿这类未映射事件也会拉低 `AXP_IRQ`.当前 driver 在 open 时把 IRQ 使能显式收敛到事件表映射的位 (`REG40H`=0,`REG41H`=0xFC,`REG42H`=0x18),预期此后 `AXP_IRQ` 只会随已映射事件拉低;该预期未被 `test/pmu` 自检覆盖,待后续专门验证.当前 public API 已删除 raw `INTSTS` 寄存器字段,只保留稳定的板级状态和已映射事件.
 
 ## 已完成的 KEY2 真机验证
 
@@ -119,7 +130,7 @@ Bring-up 期间曾临时打印 raw IRQ status,并已经确认以下 AXP2101 IRQ 
 - `KEY2` 按下期间 internal raw `SYS_OUT=1`,松开后回到 `0`;
 - AXP2101 有 PKEY IRQ 待处理时 internal raw `AXP_IRQ=0`,事件清除后回到 `1`;
 - 长按 `KEY2` 会导致设备断开,符合 AXP2101 默认硬件关机行为;
-- 关机后按 `KEY2` 可以重新开机.
+- 关机后短按 `KEY2` 可以重新开机 (2026-10-08 复测).
 
 这说明 AuraS3 的 `KEY2 -> AXP2101 PWRON -> AXP_IRQ -> TCA9554 -> ESP32-S3` 事件链路已经跑通.
 
@@ -182,9 +193,10 @@ AXP2101 不只是电池电压读取芯片,它还可以提供:
 - charging / discharging / standby 状态;
 - 充电阶段,例如 trickle,precharge,constant current,constant voltage,done,not charging;
 - VBUS,电池,充电,PWRON key 相关 IRQ 状态;
+- 软件关机 (`REG10H[0]` Soft PWROFF);
 - 可配置的 DCDC/LDO 电源 rail.
 
-当前第一版 BSP PMU 只暴露状态和事件,不暴露 DCDC/LDO enable 或电压设置.原因是 AuraS3 上 rail 到外设的映射还没有完全验证,误改 rail 可能导致整板掉电或外设异常.
+当前 BSP PMU 暴露状态,已映射事件和软件关机,不暴露 DCDC/LDO enable 或电压设置.原因是 AuraS3 上 rail 到外设的映射还没有完全验证,误改 rail 可能导致整板掉电或外设异常.
 
 ## AuraS3 第一阶段可以安全支持的范围
 
@@ -196,7 +208,8 @@ AXP2101 不只是电池电压读取芯片,它还可以提供:
 - 读取 VBUS,电池,system voltage 和 PMU 温度;
 - 读取充电状态和电池百分比;
 - 通过 TCA9554 读取原始 `SYS_OUT` 和 `AXP_IRQ` 电平;
-- 读取并清除 AXP2101 PMU 事件.
+- 读取并清除 AXP2101 PMU 事件;
+- 触发软件关机 (`REG10H[0]`);USB 场景已验证断电成功且不自恢复,关机后短按 `KEY2` 可开机.
 
 这些足够支撑:
 
@@ -206,11 +219,24 @@ AXP2101 不只是电池电压读取芯片,它还可以提供:
 - PMU test_app 输出;
 - KEY2 短按/长按事件验证.
 
+## 软件关机 (真机验证)
+
+`bsp_pmu_power_off()` 写 AXP2101 `REG10H[0]` (Soft PWROFF),预期切断 VCC3V3 等输出;断电后只能靠 PMU 开机源重新上电,当前板子上是 `KEY2` (PWRON).
+
+验证方法: `cd test && ./bsp.sh pmu auras3 flash monitor`,自检汇总行之后按提示回答 `y` 触发;断电成功时本次运行不会再有任何输出,这属于预期. 按 `KEY2` 重新开机并重新跑自检,在提示处回答 `n` 跳过触发.
+
+WSL + usbipd 环境下断电会让 USB 串口设备从 WSL 直接掉线,`idf.py monitor` 表现为 `device disconnected` 并等待重连;设备本身消失就是断电生效的直接证据,恢复观察前需要重新 attach.
+
+| 场景 | 观察点 | 结论 |
+|---|---|---|
+| USB 供电 | 写 `REG10H[0]` 后是否断电;是否自动回电 | 断电成功 (2026-10-08): 最后日志停在 `>>> cutting power now`,USB 设备掉线;无自动回电;关机后短按 `KEY2` 可重新开机 |
+| 仅电池 | 是否断电;`KEY2` 是否重新开机 | 待真机确认 (无电池) |
+| USB + 电池 | 是否断电;是否自动回电;`KEY2` 行为 | 待真机确认 (无电池) |
+
 ## 暂不暴露的能力
 
 以下能力在单独真机验证前,不应作为 public BSP API:
 
-- AXP2101 software power-off / shutdown;
 - DCDC/LDO rail enable/disable;
 - DCDC/LDO voltage programming;
 - 充电电流/目标电压的用户控制;
@@ -232,22 +258,21 @@ AXP2101 不只是电池电压读取芯片,它还可以提供:
 - 充电开始事件;
 - 充电状态和 `battery_percent` 读取,且百分比在真机测试中可正常收敛.
 
-当前 public BSP PMU API 保持只读:`open` / `close` / `get_status` / `get_events`.Bring-up 期间使用过的 raw AXP2101 status / IRQ 寄存器已经证明有调试价值,但不进入稳定 public API.
+当前 public BSP PMU API:`open` / `close` / `get_status` / `get_events` / `power_off`.Bring-up 期间使用过的 raw AXP2101 status / IRQ 寄存器已经证明有调试价值,但不进入稳定 public API.
 
 后续若继续扩展 PMU,再单独验证:
 
-1. AXP2101 software power-off 是否能关闭 AuraS3 的 `VCC3V3`.
-2. AXP2101 software power-off 在 USB,仅电池,USB+电池三种供电场景下行为是否一致.
-3. software power-off 后,`KEY2` 是否能重新开机.
-4. AXP2101 哪些 DCDC/LDO rail 生成 `VCC3V3` 和 `VCCRTC`.
-5. 是否还有其他 AXP2101 rail 接到外设,并且可以被安全控制.
-6. 充电完成 IRQ 是否能在非满电电池充满时稳定触发.
-7. VBUS 插入/移除 IRQ 是否正确映射.
+1. AXP2101 哪些 DCDC/LDO rail 生成 `VCC3V3` 和 `VCCRTC`.
+2. 是否还有其他 AXP2101 rail 接到外设,并且可以被安全控制.
+3. 充电完成 IRQ 是否能在非满电电池充满时稳定触发.
+4. VBUS 插入/移除 IRQ 是否正确映射.
+
+`bsp_pmu_power_off()` 的断电行为已进入 public API;USB 场景已真机验证,仅电池与 USB+电池场景待电池到位,方法和记录见本文"软件关机 (真机验证)".
 
 ## 建议调试流程
 
-1. 先运行只读 PMU status 测试.
+1. 先运行 `test/pmu` 自检 (status 和事件部分).
 2. 确认 AXP2101 chip ID 和基本电压读数.
 3. 如需重新验证 KEY2/SYS_OUT 或 AXP_IRQ raw 电平,临时使用 board internal debug/test app,不要把 raw 字段加入 public PMU status.
 4. 在 `KEY2` 短按和长按后读取并清除 PMU events.
-5. 只有在状态和事件行为明确后,才谨慎测试 software power-off,并准备好恢复方式.
+5. software power-off 由 `test/pmu` 自检结束后的引导步触发;触发前确认 `KEY2` 可用作恢复手段.

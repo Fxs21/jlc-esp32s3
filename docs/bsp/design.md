@@ -173,9 +173,13 @@ driver 与 board port 的分工:
 
 ### PMU
 
-- PMU API 第一阶段只表达只读状态和已映射事件: `open` / `close` / `get_status` / `get_events`.
+- PMU API 提供只读状态,已映射事件和软件关机: `open` / `close` / `get_status` / `get_events` / `power_off`.
 - AuraS3 board port 直接实现 `bsp_pmu_*` 公共 API;DoerS3 的 unsupported stub 由 `src/common/unsupported/pmu_unsupported.c` 提供.
-- public status 暴露 VBUS,电池,充电,电压和温度,不暴露 AXP2101 raw register 或 TCA9554 raw 电平.
+- `open` 不带 config: 电压/温度 ADC, fuel gauge 和事件 IRQ 的使能在 open 内固定完成,不提供静默禁用路径.
+- IRQ 使能显式收敛到事件表映射的位,不依赖 EFUSE/复位默认值;`get_events()` 按快照映射,`clear` 只把本次读到的置位写回 (RW1C),避免 AXP_IRQ 被未映射事件拉低或在读-写窗口吞事件.
+- public status 暴露 VBUS,电池,充电方向/阶段,电压和温度,不暴露 AXP2101 raw register 或 TCA9554 raw 电平;语义上不适用的值用 `-1` 表示.
+- `power_off()` 写 AXP2101 `REG10H[0]` 切电;成功即掉电,返回前设备可能已经断电,没有可控 PMU 的板返回 `ESP_ERR_NOT_SUPPORTED`.
+- 契约按语义设计:新板 port 实现同一语义,能力缺失用 `desc.present` / `-1` / `UNKNOWN` / `ESP_ERR_NOT_SUPPORTED` 表达,不引入跨芯片抽象层.
 - raw IRQ / raw status 只能作为 bring-up 临时调试手段,结论确认后应删除或留在 internal-only debug,不能进入稳定 public API.
 
 ### RTC

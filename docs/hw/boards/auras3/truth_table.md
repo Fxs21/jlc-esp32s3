@@ -27,7 +27,7 @@
 | IMU | QMI8658 | 真机 `i2c_scan` 和 BSP test 已确认 |
 | Audio playback codec | ES8311 | 真机 `i2c_scan` + `test/bsp.sh audio auras3` 已确认 |
 | Audio record codec | ES7210 | 真机 `i2c_scan` 已确认;open path 已确认 |
-| PMU | AXP2101 | 真机 `i2c_scan` 和 `pmu` test 已确认;当前 BSP 提供只读 public API |
+| PMU | AXP2101 | 真机 `i2c_scan` 和 `pmu` 自检已确认;当前 BSP 提供状态/事件/软件关机 public API,软件关机 USB 场景断电已验证 (2026-10-08) |
 | RTC | PCF85063ATL | 真机 `i2c_scan` 已确认;`bsp_rtc` 读写时间已实现 |
 | IO expander | TCA9554PWR | 真机 `i2c_scan` 地址 `0x20`;P7 用于 GPS reset |
 | SD card | 1-bit SDMMC | CLK=GPIO2, CMD=GPIO1, D0=GPIO3;真机确认 |
@@ -54,7 +54,6 @@
 
 ### 总线冲突/待裁决项
 
-- `01_AXP2101/sdkconfig.defaults` 写 `CONFIG_PMU_I2C_SCL=7` / `CONFIG_PMU_I2C_SDA=8`,与已确认主 pin 表 `SCL=14` / `SDA=15` 冲突;视为示例残留,实现以主 I2C 为准.
 - Arduino `pin_config.h` 同时出现 `I2S_MCK_IO=16` 和实际 `MCLKPIN=42`;当前实现以官方 ESP-IDF BSP 和真机确认的 `GPIO42` 为准.
 - SD wiring 官方资料偏向 SDMMC 1-bit,当前 BSP 已使用 SDMMC 1-bit 并真机确认.
 
@@ -247,11 +246,13 @@ temp      C: 33.71
 
 ### PMU 当前结论
 
-- 当前 BSP 已提供 `bsp_pmu` public API,只包含 `open` / `close` / `get_status` / `get_events`.
-- 已确认 `KEY2` 短按 / 长按 event,长按硬关机,关机后按 `KEY2` 重新开机.
+- 当前 BSP 提供 `bsp_pmu` public API: `open` / `close` / `get_status` / `get_events` / `power_off`;`open` 固定完成 ADC, fuel gauge 和事件 IRQ 最小使能.
+- open 时把 IRQ 使能显式收敛到事件表映射的位 (`REG40H`=0,`REG41H`=0xFC,`REG42H`=0x18),避免 `AXP_IRQ` 被未映射事件 (gauge SOC,电池温度,PWRON 边沿) 拉低.
+- 已确认 `KEY2` 短按 / 长按 event,长按硬关机,关机后短按 `KEY2` 重新开机 (2026-10-08).
 - 已确认 `SYS_OUT` idle 为 `0`,按下 `KEY2` 为 `1`;`AXP_IRQ` idle 为 `1`,pending IRQ 为 `0`.
 - 已确认电池插入 / 拔出,充电开始,VBUS/电池/system voltage,PMU 温度和 `battery_percent` 读取.
-- public API 不暴露 raw AXP2101 register,不开放 software power-off,rail control 或充电参数配置.详细结论见 `docs/hw/auras3-pmu-key.md`.
+- public API 不暴露 raw AXP2101 register,不开放 rail control 或充电参数配置.详细结论见 `docs/hw/auras3-pmu-key.md`.
+- `bsp_pmu_power_off()` (写 `REG10H[0]`) USB 场景已验证 (2026-10-08): 断电成功, 无自动回电, 关机后短按 `KEY2` 可开机;仅电池 / USB+电池场景待电池. 验证入口是 `test/pmu` 自检结束后的引导步.
 
 ## 10. RTC, PCF85063
 
@@ -317,7 +318,7 @@ temp      C: 33.71
 | `bsp_imu` | 已实现 | QMI8658,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh imu auras3`, 6/6 PASS) |
 | `bsp_audio` | 已实现 | 会话模型 (record mask,TDM 回采和 full-duplex),真机确认 (2026-10-08, sha `5b2bc27`, `test/bsp.sh audio auras3`, 10/10 PASS 1 ignored) |
 | `bsp_gnss` | 已实现但未硬件验证 | 模组未贴装,自检 3 s 无 NMEA 输出 `SKIP` (2026-09-30, sha `5f4674c`) |
-| `bsp_pmu` | 已实现 | AXP2101 只读 status/events,KEY2 和电池事件真机确认 |
+| `bsp_pmu` | 已实现 | AXP2101 status/events/power_off;真机自检 (2026-10-08, sha `90dc3f7-dirty`, `test/bsp.sh pmu auras3`, 7 项 0 失败 1 ignored);power_off USB 场景断电已验证 |
 | `bsp_camera` | unsupported | 用户确认无 camera;自检输出 `SKIP` (2026-09-30, sha `5f4674c`) |
 | `bsp_rtc` | 已实现 | PCF85063ATL 读写时间 + OS 标志,真机确认 (2026-09-30, sha `f54f62a`, `test/bsp.sh rtc auras3`, 5/5 PASS) |
 | TCA9554PWR | 内部 helper 已接入 | 当前用于 GNSS reset 和 input default setup |
@@ -404,6 +405,21 @@ temp      C: 33.71
 | 初始化时同时 enable TX/RX,`auto_clear = true` | 通道按需 enable/disable,TX 预载静音后再 enable | 预载保证第一次 enable 就送静音;`auto_clear` 只在 underrun 后生效 |
 | 只有 ES8311,单一 16 kHz 编译期常量 | 录音依赖 ES7210 (3 通道回采需要 TDM),采样率运行时可配 8000..48000 Hz | 回采需要 3 个 ADC;codec driver 带各档系数,自检覆盖非默认采样率 |
 | I2C 100 kHz | 400 kHz | 与全板 I2C 速率统一 |
+
+### 01_AXP2101 -> `bsp_pmu`
+
+核对基线: 2026-10-08, sha `90dc3f7-dirty`.
+
+一致项: 地址 `0x34`;ADC 测量使能集合 (电池/USB/系统电压/温度) 和 TS pin 关闭 (板上无电池温度检测,否则影响充电);IRQ 源集合 (VBUS 插拔,电池插拔,PKEY 短按/长按,充电开始/完成) 与 `REG41H`=0xFC / `REG42H`=0x18 一致;IRQ status 读后清 latch 的消费模型;充电阶段枚举 (trickle/precharge/CC/CV/done/not charging);`isCharging`/`isDischarge`/`isStandby` 与 `BSP_PMU_POWER_STATE_*` 同源 (`REG01H`);`enableGauge()` 写 `REG18H[3]` 与本仓库一致 (例程未调用,依赖复位默认).
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| 设置预充 50 mA / 恒流 200 mA / 截止 25 mA / 目标电压 `4V1` | 不改充电参数 | 充电曲线属于电池和产品策略,未经整机验证不进 BSP;误设影响安全 |
+| 打印并 (注释形式) 提供 DC1-5 / ALDO / BLDO / DLDO 开关与调压,源码自带警告"不知道外部负载电压时运行可能烧负载" | 不开放 rail control | rail 到外设映射未验证;例程自己的警告也说明误改 rail 有实际风险 |
+| `sdkconfig.defaults` 用 `SCL 14` / `SDA 15` / `INT -1`;Kconfig 通用默认是 `22/21/35` | 走主 I2C `GPIO14/15`,无 GPIO 中断线 | 入库副本与板级一致;此前"总线冲突/待裁决项"记录的 `7/8` 未在入库副本出现,随删除关闭 |
+| legacy `driver/i2c.h` 100 kHz | `i2c_master` 400 kHz | 与全板 I2C 速率统一 |
+| GPIO 负沿中断 + queue + 任务分发 (`irq_init`,实际被注释);1 s 任务轮询 `getIrqStatus` 并打印 | 无回调无后台任务,轮询 `get_events`,latch 语义 | `AXP_IRQ` 不直接接 ESP32 GPIO,经 TCA9554 才可见;无 SoC 中断线 |
+| 不演示软件关机 | `bsp_pmu_power_off()` (写 `REG10H[0]`) 已进 public API,USB 场景真机验证 | 关机能力由本仓库补充;验证记录见 `docs/hw/auras3-pmu-key.md` |
 
 ### 待办
 

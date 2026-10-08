@@ -331,13 +331,14 @@ static inline esp_err_t <board>_ioexp_set_audio_pa(bool on) {
 
 ### 13.1. PMU
 
-只有有 PMU 硬件的板 (AuraS3 AXP2101) 需要实现. 实现 `bsp_pmu_*` 全部 5 个函数:
+只有有 PMU 硬件的板 (AuraS3 AXP2101) 需要实现. 实现 `bsp_pmu_*` 全部 6 个函数:
 
 - `bsp_pmu_get_desc()`: 返回 `present=true` + model name
-- `bsp_pmu_open()`: `bsp_i2c_acquire()` + open AXP2101 + enable ADC/IRQ
+- `bsp_pmu_open()`: `bsp_i2c_acquire()` + open AXP2101 + 使能 ADC, fuel gauge 和事件 IRQ
 - `bsp_pmu_close()`: close AXP2101 + `bsp_i2c_release()`
 - `bsp_pmu_get_status()`: 从 AXP2101 读取 status 映射到 `bsp_pmu_status_t`
-- `bsp_pmu_get_events()`: 从 AXP2101 读取 event 映射到 `bsp_pmu_event_t`
+- `bsp_pmu_get_events()`: 从 AXP2101 读取事件快照并映射;`clear` 只消费本次返回的 latch
+- `bsp_pmu_power_off()`: 写 AXP2101 `REG10H[0]` 切电
 
 无 PMU 的板用 `src/common/unsupported/pmu_unsupported.c` (返回 `ESP_ERR_NOT_SUPPORTED`).
 

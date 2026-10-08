@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "test_bsp_pmu.c"
-    INCLUDE_DIRS "."
-    REQUIRES bsp
+    PRIV_REQUIRES selftest bsp esp_timer
+    INCLUDE_DIRS ""
 )

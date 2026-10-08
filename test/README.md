@@ -8,6 +8,7 @@
 - 只使用 BSP public API, 不 include board port 或私有 driver 头文件.
 - 上电即自检, 不需要人工敲命令; 结论由程序判定, 不靠人读日志判断.
 - 模块在该板上不存在时输出 `result=SKIP`, 不算失败.
+- 破坏性动作 (如 PMU 软件关机) 不进入判据: 放在汇总行之后由人工确认触发, 行为结论写进对应 truth table 和硬件文档.
 - 大缓冲不要放栈上: `app_main` 任务栈只有几 KB, KB 级数组会先冲掉堆内存再以
   `Interrupt wdt timeout` panic 收场; 放 `static` 或用堆分配.
 - `sdkconfig.defaults` 自足: 每个 app 需要的配置全部写在自己文件里, 不从根工程继承;

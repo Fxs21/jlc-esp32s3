@@ -9,9 +9,8 @@ const bsp_pmu_desc_t *bsp_pmu_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *pmu_out)
+esp_err_t bsp_pmu_open(bsp_pmu_handle_t *pmu_out)
 {
-    (void)config;
     if (pmu_out != NULL) {
         *pmu_out = NULL;
     }
@@ -36,5 +35,11 @@ esp_err_t bsp_pmu_get_events(bsp_pmu_handle_t pmu, bsp_pmu_event_t *events_out, 
     (void)pmu;
     (void)events_out;
     (void)clear;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t bsp_pmu_power_off(bsp_pmu_handle_t pmu)
+{
+    (void)pmu;
     return ESP_ERR_NOT_SUPPORTED;
 }

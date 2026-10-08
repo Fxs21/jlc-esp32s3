@@ -44,6 +44,20 @@ static bsp_pmu_charge_state_t map_charge_state(axp2101_charge_state_t state)
     }
 }
 
+static bsp_pmu_power_state_t map_power_state(axp2101_power_state_t state)
+{
+    switch (state) {
+    case AXP2101_POWER_STATE_STANDBY:
+        return BSP_PMU_POWER_STATE_STANDBY;
+    case AXP2101_POWER_STATE_CHARGING:
+        return BSP_PMU_POWER_STATE_CHARGING;
+    case AXP2101_POWER_STATE_DISCHARGING:
+        return BSP_PMU_POWER_STATE_DISCHARGING;
+    default:
+        return BSP_PMU_POWER_STATE_UNKNOWN;
+    }
+}
+
 static bsp_pmu_event_t map_events(axp2101_event_t events)
 {
     bsp_pmu_event_t mapped = BSP_PMU_EVENT_NONE;
@@ -106,14 +120,11 @@ const bsp_pmu_desc_t *bsp_pmu_get_desc(void)
     return &s_desc;
 }
 
-esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *pmu_out)
+esp_err_t bsp_pmu_open(bsp_pmu_handle_t *pmu_out)
 {
     ESP_RETURN_ON_FALSE(pmu_out != NULL, ESP_ERR_INVALID_ARG, TAG, "pmu_out is null");
-    ESP_RETURN_ON_FALSE(!s_pmu_open, ESP_ERR_INVALID_STATE, TAG, "pmu already open");
     *pmu_out = NULL;
-
-    const bsp_pmu_config_t default_config = BSP_PMU_CONFIG_DEFAULT();
-    const bsp_pmu_config_t *cfg = config != NULL ? config : &default_config;
+    ESP_RETURN_ON_FALSE(!s_pmu_open, ESP_ERR_INVALID_STATE, TAG, "pmu already open");
 
     bsp_pmu_handle_t pmu = calloc(1, sizeof(*pmu));
     ESP_RETURN_ON_FALSE(pmu != NULL, ESP_ERR_NO_MEM, TAG, "no memory");
@@ -147,17 +158,19 @@ esp_err_t bsp_pmu_open(const bsp_pmu_config_t *config, bsp_pmu_handle_t *pmu_out
     if (ret != ESP_OK) {
         goto err;
     }
-    if (cfg->enable_adc) {
-        ret = axp2101_enable_adc(pmu->axp);
-        if (ret != ESP_OK) {
-            goto err;
-        }
+    // open 固定完成最小 bring-up: 电压/温度 ADC, fuel gauge 和事件 IRQ;
+    // 不提供 config, 避免静默禁用 ADC / IRQ 造成的隐性状态.
+    ret = axp2101_enable_adc(pmu->axp);
+    if (ret != ESP_OK) {
+        goto err;
     }
-    if (cfg->enable_irq) {
-        ret = axp2101_enable_default_irqs(pmu->axp);
-        if (ret != ESP_OK) {
-            goto err;
-        }
+    ret = axp2101_enable_gauge(pmu->axp);
+    if (ret != ESP_OK) {
+        goto err;
+    }
+    ret = axp2101_enable_irqs(pmu->axp);
+    if (ret != ESP_OK) {
+        goto err;
     }
 
     s_pmu_open = true;
@@ -188,13 +201,10 @@ esp_err_t bsp_pmu_get_status(bsp_pmu_handle_t pmu, bsp_pmu_status_t *status_out)
     ESP_RETURN_ON_ERROR(axp2101_get_status(pmu->axp, &axp_status), TAG, "get axp status failed");
 
     bsp_pmu_status_t status = {0};
-    status.vbus_present = axp_status.vbus_present;
     status.vbus_good = axp_status.vbus_good;
-    status.battery_present = axp_status.battery_present;
-    status.charging = axp_status.charging;
-    status.discharging = axp_status.discharging;
-    status.standby = axp_status.standby;
+    status.power_state = map_power_state(axp_status.power_state);
     status.charge_state = map_charge_state(axp_status.charge_state);
+    status.battery_present = axp_status.battery_present;
     status.battery_percent = axp_status.battery_percent;
     status.battery_voltage_mv = axp_status.battery_voltage_mv;
     status.vbus_voltage_mv = axp_status.vbus_voltage_mv;
@@ -214,4 +224,10 @@ esp_err_t bsp_pmu_get_events(bsp_pmu_handle_t pmu, bsp_pmu_event_t *events_out, 
     ESP_RETURN_ON_ERROR(axp2101_get_events(pmu->axp, &events, clear), TAG, "get events failed");
     *events_out = map_events(events);
     return ESP_OK;
+}
+
+esp_err_t bsp_pmu_power_off(bsp_pmu_handle_t pmu)
+{
+    ESP_RETURN_ON_FALSE(pmu != NULL, ESP_ERR_INVALID_ARG, TAG, "pmu is null");
+    return axp2101_power_off(pmu->axp);
 }

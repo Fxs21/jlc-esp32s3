@@ -29,6 +29,9 @@ old_symbols = [
     "BSP_AUDIO_DIR_",
     "bsp_audio_start",
     "bsp_audio_stop",
+    "bsp_pmu_config_t",
+    "BSP_PMU_CONFIG_DEFAULT",
+    "vbus_present",
     "esp_lcd_touch_ft5x06",
     "ft5x06",
 ]

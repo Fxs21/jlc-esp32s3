@@ -22,7 +22,7 @@
 | audio | `bsp_audio_*` | ES8311 `0x18` + ES7210 `0x41` | ES8311 `0x18` + ES7210 `0x40` |
 | gnss | `bsp_gnss_*` | MAX-M10S,UART1,`38400` | 原理图预留,板上未贴模组 |
 | camera | `bsp_camera_*` | GC0308 DVP,需 `CONFIG_BSP_ENABLE_CAMERA=y` | 无硬件,返回 `ESP_ERR_NOT_SUPPORTED` |
-| pmu | `bsp_pmu_*` | 无,返回 `ESP_ERR_NOT_SUPPORTED` | AXP2101 `0x34`,只读 |
+| pmu | `bsp_pmu_*` | 无,返回 `ESP_ERR_NOT_SUPPORTED` | AXP2101 `0x34`,状态/事件/软件关机 |
 | rtc | `bsp_rtc_*` | 无,返回 `ESP_ERR_NOT_SUPPORTED` | PCF85063ATL `0x51`,读写时间 |
 | i2c 诊断 | `bsp_i2c_acquire/probe/scan` | I2C0,SDA `GPIO1`,SCL `GPIO2` | I2C1,SDA `GPIO15`,SCL `GPIO14` |
 
@@ -56,10 +56,12 @@
 - 采样率 8000..48000 Hz 标准集; `play_write` 收单声道; 音量 0..100%; 录音增益按 dB.
 - AuraS3 full-duplex 和回采已真机验证; DoerS3 同一设计已编译对齐, 但 `supports_full_duplex` 为 `false`, 复测前 app 不应依赖该路径.
 
-### PMU 只承诺只读
+### PMU 提供状态,事件和软件关机
 
 - 只有 AuraS3 有 PMU: `get_status` / `get_events` 读 VBUS,电池,充电,电压,温度.
-- 不暴露 AXP2101 raw register 或 TCA9554 raw 电平;充电参数,rail control,software power-off 未开放.
+- `bsp_pmu_power_off()` 写 AXP2101 `REG10H[0]` 切电;调用成功即断电,恢复只能靠 PMU 开机源 (KEY2 等). USB 场景已真机验证 (断电成功, 无自动回电, 关机后短按 `KEY2` 可开机);仅电池与 USB+电池场景待电池到位. 验证记录见 `docs/hw/auras3-pmu-key.md`.
+- `get_events()` 的 `clear` 只消费本次返回的 latch;`clear=false` 用于不消费地查看.
+- 不暴露 AXP2101 raw register 或 TCA9554 raw 电平;充电参数,rail control 未开放.
 
 ### GNSS 只承诺 raw byte stream
 
@@ -88,7 +90,7 @@
 | `bsp_audio.h` | `bsp_audio_get_desc` / `default_config` / `open` / `close`,`play_start` / `play_stop` / `play_set_volume` / `play_set_mute` / `play_write`,`record_start` / `record_stop` / `record_set_gain` / `record_read` |
 | `bsp_gnss.h` | `bsp_gnss_get_desc` / `open` / `close` / `read` |
 | `bsp_camera.h` | `bsp_camera_get_desc` / `open` / `close` / `capture` / `release_frame` |
-| `bsp_pmu.h` | `bsp_pmu_get_desc` / `open` / `close` / `get_status` / `get_events` |
+| `bsp_pmu.h` | `bsp_pmu_get_desc` / `open` / `close` / `get_status` / `get_events` / `power_off` |
 | `bsp_rtc.h` | `bsp_rtc_get_desc` / `open` / `close` / `get_time` / `set_time` |
 | `bsp_i2c.h` | `bsp_i2c_acquire` / `release` / `probe` / `scan` |
 

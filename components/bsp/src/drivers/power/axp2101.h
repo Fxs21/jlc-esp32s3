@@ -19,7 +19,15 @@ typedef enum {
     AXP2101_CHARGE_STATE_CONSTANT_VOLTAGE,
     AXP2101_CHARGE_STATE_DONE,
     AXP2101_CHARGE_STATE_NOT_CHARGING,
+    AXP2101_CHARGE_STATE_UNKNOWN,
 } axp2101_charge_state_t;
+
+typedef enum {
+    AXP2101_POWER_STATE_STANDBY = 0,
+    AXP2101_POWER_STATE_CHARGING,
+    AXP2101_POWER_STATE_DISCHARGING,
+    AXP2101_POWER_STATE_UNKNOWN,
+} axp2101_power_state_t;
 
 typedef uint32_t axp2101_event_t;
 
@@ -38,12 +46,9 @@ typedef struct {
 } axp2101_config_t;
 
 typedef struct {
-    bool vbus_present;
     bool vbus_good;
     bool battery_present;
-    bool charging;
-    bool discharging;
-    bool standby;
+    axp2101_power_state_t power_state;
     axp2101_charge_state_t charge_state;
     int battery_percent;
     int battery_voltage_mv;
@@ -56,9 +61,11 @@ esp_err_t axp2101_open(const axp2101_config_t *cfg, axp2101_handle_t *handle_out
 esp_err_t axp2101_close(axp2101_handle_t handle);
 esp_err_t axp2101_enable_adc(axp2101_handle_t handle);
 esp_err_t axp2101_disable_ts_adc(axp2101_handle_t handle);
-esp_err_t axp2101_enable_default_irqs(axp2101_handle_t handle);
+esp_err_t axp2101_enable_gauge(axp2101_handle_t handle);
+esp_err_t axp2101_enable_irqs(axp2101_handle_t handle);
 esp_err_t axp2101_get_status(axp2101_handle_t handle, axp2101_status_t *status_out);
 esp_err_t axp2101_get_events(axp2101_handle_t handle, axp2101_event_t *events_out, bool clear);
+esp_err_t axp2101_power_off(axp2101_handle_t handle);
 
 #ifdef __cplusplus
 }
