@@ -45,6 +45,18 @@ static const char *TAG = "test_bsp_ui";
 static bsp_ui_handle_t s_ui;
 static volatile uint32_t s_flush_count;
 
+static bool touch_present(void)
+{
+    const bsp_touch_desc_t *desc = bsp_touch_get_desc();
+    return desc != NULL && desc->present;
+}
+
+static bool backlight_present(void)
+{
+    const bsp_backlight_desc_t *desc = bsp_backlight_get_desc();
+    return desc != NULL && desc->present;
+}
+
 static void open_ui(void)
 {
     s_ui = NULL;
@@ -117,13 +129,13 @@ TEST_CASE("ui: open binds an LVGL display, an indev and the backlight", "[ui]")
 
     // 有触摸就该有 indev; 没有触摸的板子上 indev 是 NULL 才对.
     lv_indev_t *indev = bsp_ui_get_lvgl_indev(s_ui);
-    if (bsp_touch_get_desc()->present) {
+    if (touch_present()) {
         TEST_ASSERT_NOT_NULL(indev);
     } else {
         TEST_ASSERT_NULL(indev);
     }
 
-    TEST_ASSERT_TRUE(bsp_backlight_get_desc()->present);
+    TEST_ASSERT_TRUE(backlight_present());
 }
 
 TEST_CASE("ui: ui owns the native display and backlight handles", "[ui]")
@@ -219,7 +231,7 @@ TEST_CASE("ui: widgets demo renders and follows touch", "[ui]")
 
     // 首帧先进面板再点灯: 亮度 0 起画面更干净 (truth table §4: UI 首帧后再开亮度).
     lvgl_run(FIRST_FRAME_MS);
-    if (bsp_backlight_get_desc()->present) {
+    if (backlight_present()) {
         TEST_ASSERT_EQUAL(ESP_OK, bsp_ui_set_backlight(s_ui, 100));
     }
 

@@ -275,7 +275,9 @@ static void record_for(uint32_t sample_rate, size_t channels, uint32_t duration_
     }
 }
 
-// 同时播放和录音: 每轮写一块再读一块, 保持两条流的速率匹配.
+// 同时播放和录音: 写一块读一块, 但两条流各自记进度.
+// 录音一旦短读, played 会领先 captured; 播放写满 total_frames 后必须停止写,
+// 否则会落到 play_write(len=0) 的参数错误上, 把测试判成假失败.
 static void play_and_record(uint32_t sample_rate, size_t channels, uint32_t duration_ms)
 {
     const size_t total_frames = (size_t)sample_rate * duration_ms / 1000;
@@ -284,23 +286,31 @@ static void play_and_record(uint32_t sample_rate, size_t channels, uint32_t dura
     size_t played = 0;
     size_t captured = 0;
     while (captured < total_frames) {
-        size_t frames = total_frames - played;
-        if (frames > CHUNK_FRAMES) {
-            frames = CHUNK_FRAMES;
+        if (played < total_frames) {
+            size_t frames = total_frames - played;
+            if (frames > CHUNK_FRAMES) {
+                frames = CHUNK_FRAMES;
+            }
+            fill_tone(s_play_chunk, frames, sample_rate);
+
+            size_t written = 0;
+            TEST_ASSERT_EQUAL(ESP_OK,
+                              bsp_audio_play_write(s_audio, s_play_chunk, frames * sizeof(s_play_chunk[0]), &written,
+                                                   IO_TIMEOUT_MS));
+            TEST_ASSERT_EQUAL_UINT(frames * sizeof(s_play_chunk[0]), written);
+            played += frames;
         }
-        fill_tone(s_play_chunk, frames, sample_rate);
 
-        size_t written = 0;
-        TEST_ASSERT_EQUAL(ESP_OK,
-                          bsp_audio_play_write(s_audio, s_play_chunk, frames * sizeof(s_play_chunk[0]), &written,
-                                               IO_TIMEOUT_MS));
-        TEST_ASSERT_EQUAL_UINT(frames * sizeof(s_play_chunk[0]), written);
-        played += frames;
-
+        size_t want = total_frames - captured;
+        if (want > CHUNK_FRAMES) {
+            want = CHUNK_FRAMES;
+        }
         size_t read = 0;
-        TEST_ASSERT_EQUAL(ESP_OK, bsp_audio_record_read(s_audio, s_rec_chunk, frames * channels * sizeof(s_rec_chunk[0]),
-                                                        &read, IO_TIMEOUT_MS));
+        TEST_ASSERT_EQUAL(ESP_OK,
+                          bsp_audio_record_read(s_audio, s_rec_chunk, want * channels * sizeof(s_rec_chunk[0]), &read,
+                                                IO_TIMEOUT_MS));
         const size_t got = read / (channels * sizeof(s_rec_chunk[0]));
+        TEST_ASSERT_TRUE(got > 0);
         analysis_store(s_rec_chunk, got, channels);
         stats_add(s_rec_chunk, got, channels, sample_rate);
         captured += got;
