@@ -48,11 +48,13 @@
 - 不做多 backend,不做 vtable 或 registry;允许暴露 LVGL 类型,函数名必须带 `lvgl`.
 - `bsp_ui_open()` 复用 `bsp_display_open()`,两者互斥,不能同时持有.
 
-### Audio 只承诺已收敛的部分
+### Audio 是会话模型, 录音通道按 mask 选择
 
-- 当前稳定语义: ES8311 speaker playback + ES7210 MIC1/MIC2 16-bit stereo record,两块板一致.
-- MIC3 playback reference,TDM,AEC 已暂停,不在 public API 内.
-- full-duplex (同时 playback + record) 尚未真机验证;`bsp_audio_desc_t.supports_full_duplex` 两板声明 true,验证前 app 不应依赖该路径.
+- 一次 `bsp_audio_open()` = 一个会话: 一个 I2S 时钟域, 一种格式和一条可选的录音路径; 播放和录音是会话内的两条独立流, 可以同时运行 (full-duplex).
+- 录音通道只接受三种 mask 组合: `0` (纯播放), `MIC1|MIC2` (16-bit stereo), `MIC1|MIC2|LOOPBACK` (TDM 3 通道); 位序, 用法和错误语义见 `docs/bsp/audio.md`.
+- `LOOPBACK` 是 ES8311 模拟输出回采到 ES7210 `MIC3`, 不是第三个板载麦克风; BSP 只提供参考信号, 不提供 AEC 算法.
+- 采样率 8000..48000 Hz 标准集; `play_write` 收单声道; 音量 0..100%; 录音增益按 dB.
+- AuraS3 full-duplex 和回采已真机验证; DoerS3 同一设计已编译对齐, 但 `supports_full_duplex` 为 `false`, 复测前 app 不应依赖该路径.
 
 ### PMU 只承诺只读
 
@@ -83,7 +85,7 @@
 | `bsp_backlight.h` | `bsp_backlight_get_desc` / `open` / `close` / `set_percent` / `get_percent` |
 | `bsp_sdcard.h` | `bsp_sdcard_get_desc` / `open` / `close` / `mount` / `unmount` / `get_mount_point` / `get_info` / `get_fs_info` |
 | `bsp_imu.h` | `bsp_imu_get_desc` / `open` / `close` / `read` / `is_data_ready` |
-| `bsp_audio.h` | `bsp_audio_get_desc` / `default_config` / `open` / `close`,`play_start` / `play_stop` / `play_set_volume` / `play_write`,`record_start` / `record_stop` / `record_set_gain` / `record_read` |
+| `bsp_audio.h` | `bsp_audio_get_desc` / `default_config` / `open` / `close`,`play_start` / `play_stop` / `play_set_volume` / `play_set_mute` / `play_write`,`record_start` / `record_stop` / `record_set_gain` / `record_read` |
 | `bsp_gnss.h` | `bsp_gnss_get_desc` / `open` / `close` / `read` |
 | `bsp_camera.h` | `bsp_camera_get_desc` / `open` / `close` / `capture` / `release_frame` |
 | `bsp_pmu.h` | `bsp_pmu_get_desc` / `open` / `close` / `get_status` / `get_events` |

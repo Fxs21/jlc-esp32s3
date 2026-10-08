@@ -215,16 +215,25 @@ temp      C: 33.71
 
 | 芯片 | 地址 | 角色 | 来源/备注 |
 |---|---:|---|---|
-| ES8311 | `0x18` | playback / DAC | 真机 `i2c_scan` + `audio tone` 确认 |
-| ES7210 | 7-bit `0x40` | record / ADC | 真机 `i2c_scan` + open path 确认 |
+| ES8311 | `0x18` | playback / DAC | 真机 `i2c_scan` + `test/bsp.sh audio auras3` 确认 |
+| ES7210 | 7-bit `0x40` | record / ADC | 真机 `i2c_scan` + 自检录音路径确认 |
+
+### 模拟音频路径
+
+| 路径 | 连接 | 来源/备注 |
+|---|---|---|
+| 播放 | ESP32-S3 `GPIO8` -> ES8311 `DSDIN` -> `OUTP/OUTN` -> NS4150B -> speaker | 真机确认 |
+| 板载双麦 | MIC1/MIC2 -> ES7210 `MIC1P/MIC1N`,`MIC2P/MIC2N` | 真机确认 (双麦拾音用例) |
+| 播放回采 | ES8311 `OUTP/OUTN` -> ES7210 `MIC3P/MIC3N` | 真机确认: 播放 1 kHz 时 TDM slot 1 有该音 (2026-10-08, sha `5b2bc27`) |
+| 未使用 | ES8311 `ASDOUT` 未接;ES8311 `MIC1P/MIC1N/MICBIAS` 未用 | 不应设计为 ES8311 ADC 录音 |
 
 ### Audio 注意事项
 
-- 当前 BSP 支持 ES8311 speaker playback 和 ES7210 MIC1/MIC2 16-bit stereo record.
-- `audio tone 1000 1000` 已真机播放正常.
+- BSP 支持三种录音 mask: `0` (纯播放),`MIC1|MIC2` (16-bit stereo),`MIC1|MIC2|LOOPBACK` (TDM 3 通道);通道顺序 `[MIC1, 回采, MIC2]`,回采在 slot 1;语义见 `docs/bsp/audio.md`.
+- ES7210 `MIC3` 是 ES8311 模拟输出的回采,不是第三个板载麦克风;回采是 line 级信号,录音增益用 `0 dB` (30 dB 会削顶).
+- full-duplex 真机确认: 播放 1 kHz 时回采通道 rms 3424 / tone_ratio 0.495,主频扫描峰值 1000 Hz,同期 MIC1/MIC2 安静 (2026-10-08, sha `5b2bc27`, `test/bsp.sh audio auras3`, 10/10 PASS 1 ignored).
+- 喇叭响度未验证: 台位未接喇叭,人工项 pending,接喇叭后补测.
 - ES8311 private driver 对 `GPIO_REG44` 首次写失败做 retry;该寄存器是 ES8311 内部 `0x44`,不是 ESP32 GPIO44.
-- `audio rec-rms` 的 MIC1/MIC2 RMS 仍建议补测.
-- MIC3 playback reference,TDM,AEC 当前暂停,不进入稳定 API.
 
 ## 9. PMU, AXP2101
 
@@ -306,7 +315,7 @@ temp      C: 33.71
 | `bsp_touch` | 已实现 | CST9217,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh touch auras3`, 5/5 PASS) |
 | `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh sdcard auras3`, 8/8 PASS) |
 | `bsp_imu` | 已实现 | QMI8658,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh imu auras3`, 6/6 PASS) |
-| `bsp_audio` | 已实现 | ES8311 tone 真机确认;ES7210 open 正常 |
+| `bsp_audio` | 已实现 | 会话模型 (record mask,TDM 回采和 full-duplex),真机确认 (2026-10-08, sha `5b2bc27`, `test/bsp.sh audio auras3`, 10/10 PASS 1 ignored) |
 | `bsp_gnss` | 已实现但未硬件验证 | 模组未贴装,自检 3 s 无 NMEA 输出 `SKIP` (2026-09-30, sha `5f4674c`) |
 | `bsp_pmu` | 已实现 | AXP2101 只读 status/events,KEY2 和电池事件真机确认 |
 | `bsp_camera` | unsupported | 用户确认无 camera;自检输出 `SKIP` (2026-09-30, sha `5f4674c`) |
@@ -379,6 +388,22 @@ temp      C: 33.71
 | `is24Hour` 从 CTRL1 读回,非 24H 才清 bit1 | `open()` 无条件强制 24 小时制 | public API 固定 24 小时制,不暴露 12H |
 | `setDateTime()` 不校验字段 | `set_time()` 校验 2000..2099 / 1..12 / 1..31 / 0..23 / 0..59 / 0..59 | 非法值写进芯片后无法区分"芯片故障"和"调用错误" |
 | weekday 读回解析成 `datetime.week` | public API 不暴露 weekday | 芯片 weekday 只是用户计数器,时间语义不依赖它 |
+
+### 06_I2SCodec -> `bsp_audio`
+
+核对基线: 2026-09-30, sha `5b2bc27`.
+
+一致项: 引脚组与 AuraS3 一致 (MCLK `GPIO42`,BCLK `GPIO9`,WS `GPIO45`,DO `GPIO8`,DI `GPIO10`,PA `GPIO46`,I2C SDA `GPIO15` / SCL `GPIO14`);ES8311 地址 `0x18`;ESP32-S3 作 I2S master 并输出 MCLK;16-bit 采样;默认音量 80;默认采样率 16 kHz.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| echo 模式用 ES8311 ADC 录音 (`es8311_microphone_config` + MIC 增益),读 I2S RX 原样写回 TX | 录音走 ES7210;回采是 ES8311 模拟输出 -> ES7210 `MIC3` | 本板 ES8311 `ASDOUT` 未接,例程的 echo 数据源在 AuraS3 上不存在 |
+| `EXAMPLE_MCLK_MULTIPLE = 384` | `256` | 例程注释自述 24-bit 才需要 384;本仓库固定 16-bit,256 即可 |
+| app 自建连续播放 task,`i2s_channel_write` 用 `portMAX_DELAY` | `play_write` 由调用者按 chunk 驱动,带 `timeout_ms` 并返回实际字节数 | public API 不内置播放 task,节奏和缓冲策略留给 app |
+| `gpio_init()` 开机把 PA 拉高并常开 | PA 在 `play_start()` 打开,`play_stop()` / `close()` 关闭 | 避免上电和静音期把 codec 底噪放到喇叭,也避免空载功耗 |
+| 初始化时同时 enable TX/RX,`auto_clear = true` | 通道按需 enable/disable,TX 预载静音后再 enable | 预载保证第一次 enable 就送静音;`auto_clear` 只在 underrun 后生效 |
+| 只有 ES8311,单一 16 kHz 编译期常量 | 录音依赖 ES7210 (3 通道回采需要 TDM),采样率运行时可配 8000..48000 Hz | 回采需要 3 个 ADC;codec driver 带各档系数,自检覆盖非默认采样率 |
+| I2C 100 kHz | 400 kHz | 与全板 I2C 速率统一 |
 
 ### 待办
 

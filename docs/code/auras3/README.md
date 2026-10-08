@@ -9,12 +9,12 @@ Waveshare ESP32-S3-Touch-AMOLED-1.75 官方示例包中的 ESP-IDF 例程 `01`~`
 | `03_QMI8658` | QMI8658 IMU | `bsp_imu` | 已核对删除 |
 | `04_SD_MMC` | SD 卡 | `bsp_sdcard` | 已核对删除 |
 | `05_LVGL_WITH_RAM` | QSPI 面板 + LVGL | `bsp_ui` | 已核对删除 |
-| `06_I2SCodec` | ES8311 / ES7210 音频 | `bsp_audio` | 保留 |
+| `06_I2SCodec` | ES8311 / ES7210 音频 | `bsp_audio` | 已核对删除 |
 | `07_Touch` | CST9217 触摸 | `bsp_touch` | 已核对删除 |
 
 约定:
 
-- 提取时保留 `main/` 源码和运行需要的资源 (`06_I2SCodec/main/canon.pcm`),不保留 `sdkconfig`,`sdkconfig.old` 和构建产物.
+- 提取时保留 `main/` 源码和运行需要的资源 (例如 `06_I2SCodec/main/canon.pcm`,已随例程删除),不保留 `sdkconfig`,`sdkconfig.old` 和构建产物.
 - 例程内 vendored 的第三方组件一并保留: `XPowersLib` (AXP2101);`SensorLib`,`esp_lcd_sh8601` 已随对应例程删除.
 - `XPowersLib` 是 MIT (lewis he);IDF 副本里没有 LICENSE,已从上游 Arduino 副本补入.
 - 已删除例程的差异结论 (例程行为 / 本仓库取舍 / 理由) 见 `docs/hw/boards/auras3/truth_table.md` §14.

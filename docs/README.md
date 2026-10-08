@@ -12,6 +12,7 @@
 | `bsp/capabilities.md` | 能力承诺: 双板能力矩阵,public API 一览,不承诺边界 |
 | `bsp/status.md` | 进度: 已完成,未验证,暂停和下一步 |
 | `bsp/porting-guide.md` | 新增 board port 的接入指南 |
+| `bsp/audio.md` | 音频子系统: 信号链,通道模型,用法和已知边界 |
 | `hw/boards/<board>/truth_table.md` | 板级硬件事实和验证记录 |
 | `hw/boards/<board>/README.md` | 板级资料入口和官方来源 |
 | `code/<board>/README.md` | 板厂例程参考的提取范围和对应 BSP 能力 |
@@ -29,6 +30,7 @@
 - `bsp/status.md`: 进度面 — 已完成,未验证,暂停和下一步;不重复承诺边界.
 - `bsp/design.md`: BSP 结构,分层职责和 API 语义.
 - `bsp/porting-guide.md`: board port 接入指南和每个文件的实现模板.
+- `bsp/audio.md`: 音频的硬件连接, 通道模型和用法; 能力承诺以 `bsp/capabilities.md` 为准.
 - 实验记录 (`hw/auras3-*.md`): 过程,取舍和理由;结论只写一次,不重复上面的承诺表.
 - `code/<board>/`: 板厂例程参考,第三方代码,不适用本仓库的 API 约束和文档风格规则.
 - `../AGENTS.md`: 协作规则;架构禁项和 API 约束以 §3, §4 为准.

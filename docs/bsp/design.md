@@ -151,12 +151,14 @@ driver 与 board port 的分工:
 
 ### Audio
 
-- audio API 使用最小句柄模型: `open/close` 管资源,`play_*` 管播放,`record_*` 管录音.
+- audio handle 是一个会话: 一次 `open()` 建立一组 I2S 时钟域, 一种格式和一条可选录音路径; 播放和录音是会话内的两条独立流, 可以同时运行 (full-duplex).
+- 录音通道用 mask 表达, 位序就是 TDM slot 顺序; 合法组合, 用法和错误语义见 `docs/bsp/audio.md`.
+- desc 用 `present` / `has_playback` / `has_record` / `has_loopback` / `supports_full_duplex` / `shared_clock` / `sample_rate_min/max` 报告板级能力, app 按能力位分支.
 - board port 直接导出 `bsp_audio_*` 公共 API 符号,内部委托给 `src/common/audio.c` 中共享的 I2S+codec 逻辑.
 - board port 通过 `bsp_audio_pins_t` pin 配置结构和 `bsp_audio_pa_fn` PA callback 参数化公共逻辑.
-- playback 和 record 可以共享同一个 handle,但公共 API 不暴露 I2S bus,codec handle 或 slot layout.
+- 公共 API 不暴露 I2S bus,codec handle 或 slot layout.
 - read/write 返回实际读写长度,并由调用者传入 `timeout_ms`.
-- 当前承诺的 playback / record 路径见 `docs/bsp/capabilities.md`;MIC3 playback reference,TDM,AEC 和 full-duplex 未确认真机行为前不进入稳定 API.
+- AEC 不在 BSP 范围: 回采通道只作为参考信号提供给 app; 承诺边界见 `docs/bsp/capabilities.md`.
 
 ### Camera
 

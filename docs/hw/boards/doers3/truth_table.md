@@ -128,17 +128,17 @@ test_app 验证:
 |---|---|---|
 | 播放 | ESP32-S3 `IO45_I2S_DO` -> ES8311 `DSDIN` -> ES8311 `OUTP/OUTN` -> NS4150B -> 喇叭接口 | 默认播放路径 |
 | 板载双麦 | MIC1 -> ES7210 `MIC1P/MIC1N`;MIC2 -> ES7210 `MIC2P/MIC2N`;`MICBIAS12` 给 MIC1/MIC2 偏置 | 默认录音路径,16-bit stereo |
-| 播放回采 | ES8311 `OUTP/OUTN` -> `R34/R35=0R` -> ES7210 `MIC3P/MIC3N` | 硬件上可作为 loopback/reference;当前 AEC/TDM 调试暂停,不作为 BSP 公开录音能力 |
+| 播放回采 | ES8311 `OUTP/OUTN` -> `R34/R35=0R` -> ES7210 `MIC3P/MIC3N` | 回采通道 (TDM slot 1);BSP 已实现同一设计,DoerS3 未复测 |
 | 未使用 | ES8311 `ASDOUT` 未接;ES8311 `MIC1P/MIC1N/MICBIAS` 未接;ES7210 `SDOUT2/TDMIN` 侧 `R37=0R NC` | 不应设计为 ES8311 ADC 录音或 codec 级联 TDM |
 
 #### Audio 注意事项
 
-- 默认录音只承诺 ES7210 `MIC1/MIC2` 双麦 stereo;不要把 ES8311 当作录音 ADC 使用.
+- 录音走 ES7210;不要把 ES8311 当作录音 ADC 使用 (`ASDOUT` 未接).
 - ES7210 `MIC3` 是 ES8311 模拟输出回采,不是第三个板载麦克风.
 - 只录 `MIC1/MIC2` 时使用 standard I2S stereo 即可,不需要 TDM.
-- 若后续要同时录 `MIC1/MIC2` 和播放回采,应作为独立专项扩展 ES7210 `TDMOUT` + ESP32-S3 TDM RX,而不是启用 ES8311 ADC.
+- 同时录 `MIC1/MIC2` 和回采由 TDM 会话实现,通道顺序 `[MIC1, 回采, MIC2]`;语义见 `docs/bsp/audio.md`,DoerS3 未复测.
 - 播放和录音共用 `MCLK/BCLK/LRCK`,同时启用时 sample rate / bit width / frame 配置必须一致.
-- DoerS3 shell `audio tone` 已真机确认播放正常.
+- 播放路径真机确认过 (旧口径);新式自检和回采待复测,`supports_full_duplex` 暂为 `false`.
 
 ### GNSS, P1 外部接口 J2
 
@@ -163,6 +163,6 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_backlight` | LEDC backlight 已实现 |
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
 | `bsp_imu` | QMI8658 已实现,真机确认 |
-| `bsp_audio` | ES8311 playback + ES7210 MIC1/MIC2 record 已实现,真机确认 |
+| `bsp_audio` | 会话模型 (record mask,TDM 回采,full-duplex) 已对齐实现;播放真机确认,新式自检未复测 |
 | `bsp_camera` | GC0308 QVGA RGB565 单帧采集已实现,真机确认 |
 | `bsp_gnss` | MAX-M10S UART NMEA 已实现,真机确认 |
