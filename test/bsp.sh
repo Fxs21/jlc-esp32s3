@@ -77,18 +77,37 @@ write_sdkconfig() {
     } >> sdkconfig
 }
 
+# idf.py 只认 <app>/build/dependencies.lock, 切板或重置 build 会把锁删掉;
+# 无网络时没有锁就无法在本地解析组件, reconfigure 会去连 component registry
+# 而失败. 在 app 根目录留一份备份, 删 build 前保存, 构建前缺失则恢复.
+reset_build() {
+    if [ -f build/dependencies.lock ]; then
+        cp -f build/dependencies.lock dependencies.lock
+    fi
+    rm -rf build
+}
+
+ensure_deps_lock() {
+    if [ -f build/dependencies.lock ]; then
+        cp -f build/dependencies.lock dependencies.lock
+    elif [ -f dependencies.lock ]; then
+        mkdir -p build
+        cp -f dependencies.lock build/dependencies.lock
+    fi
+}
+
 ensure_sdkconfig() {
     LAST_BOARD=$(current_board)
     if [ -n "$LAST_BOARD" ] && [ "$LAST_BOARD" != "$BOARD_NAME" ]; then
         echo "board changed: $LAST_BOARD -> $BOARD_NAME, resetting sdkconfig/build"
         rm -f sdkconfig
-        rm -rf build
+        reset_build
     fi
 
     if [ ! -f sdkconfig ] || [ sdkconfig.defaults -nt sdkconfig ]; then
         if [ -f build/CMakeCache.txt ] && grep -q 'sdkconfig.generated' build/CMakeCache.txt; then
             echo "legacy generated config detected, resetting build"
-            rm -rf build
+            reset_build
         fi
         if [ -f sdkconfig ]; then
             echo "sdkconfig.defaults is newer, regenerating sdkconfig"
@@ -111,7 +130,9 @@ ensure_managed_components_link() {
 
 run_idf() {
     ensure_managed_components_link
+    ensure_deps_lock
     idf.py -B build reconfigure "${ACTIONS[@]}"
+    ensure_deps_lock
 }
 
 if [ ${#ACTIONS[@]} -eq 1 ] && [ "${ACTIONS[0]}" = "clean" ]; then
