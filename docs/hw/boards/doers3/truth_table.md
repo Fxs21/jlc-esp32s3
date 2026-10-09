@@ -46,6 +46,11 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 - DoerS3 LVGL flush 直接传 LVGL RGB565 buffer,不做 byte swap.
 - Display/UI 真机已确认正常.
 
+新式自检复测 (2026-10-09, sha `f416fd8`, `test/bsp.sh display doers3`): 7/7 PASS, 3 个人工项 `yes`.
+
+- 覆盖: desc/open-close, 二次 open 拒绝, 参数校验, done 回调计数, 分块写, 全屏五色顺序, 居中图案对称, 左边缘标记.
+- 复测期间发现 `fill_rect` 在异步传输未完成时释放并复用 strip, frame 图案底部残留白条;修复为等 done 回调到齐再释放, 同 sha 复测干净通过.
+
 ### Touch, FT6X36/FT6336
 
 | 信号 | 连接 |
@@ -177,7 +182,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | BSP 模块 | DoerS3 状态 |
 |---|---|
 | `bsp_board` | 已实现,真机确认 |
-| `bsp_display` | ST7789 已实现,little-endian native contract 真机确认 |
+| `bsp_display` | ST7789 已实现,little-endian native contract 真机确认;新式自检 7/7 PASS (2026-10-09, sha `f416fd8`) |
 | `bsp_ui` | 已实现,真机确认 |
 | `bsp_touch` | FT6336 已实现,真机确认 |
 | `bsp_backlight` | LEDC backlight 已实现 |
@@ -213,3 +218,14 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `format_if_mount_failed = true` | `false` | 格式化是破坏性操作,BSP 不自动执行 |
 | `allocation_unit_size = 16 KB` | 32 KB | 批量写场景减少 FAT 簇链开销;该值只影响性能,不影响挂载兼容性 |
 | `CONFIG_FATFS_VFS_FSTAT_BLKSIZE=4096` | IDF 默认 | 当前没有对该值敏感的使用路径;需要时再对齐 |
+
+### 06-lcd -> `bsp_display`
+
+一致项: MOSI `IO40` / SCLK `IO41` / DC `IO39` / RST 未接, 背光 `IO42`;PCA9557 `LCD_CS` (IO0);SPI mode 2, cmd/param 8 bit, 16 bpp, `320x240`, `pclk 80 MHz`, `trans_queue_depth 10`;`invert_color(true)` + `swap_xy(true)` + `mirror(true, false)`;LEDC 5 kHz, `output_invert=true`.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| `SPI3_HOST` | `SPI2_HOST` | 板级自由选择;与 AuraS3 board port 统一 |
+| 未设置 `data_endian`, 面板 `RAMCTL` 保持默认 big-endian | `data_endian = LCD_RGB_DATA_ENDIAN_LITTLE` (面板 `RAMCTL` 置 little-endian 位) | 调用方直接传 LVGL / host-order RGB565, flush 路径不逐像素换序 |
+| LEDC `LEDC_TIMER_1`, 10-bit duty (100% = 1023) | `LEDC_TIMER_0`, 13-bit duty (100% = 8191) | timer0 与 camera XCLK 的 `LEDC_TIMER_1` 分开, backlight 与 camera 在同一镜像共存;13-bit 是 5 kHz 下可取的最高分辨率 |
+| 背光 percent -> 1023 取整 | percent -> 8191 取整, 百分比语义不变 | 档位更细, API 语义一致 |
