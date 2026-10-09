@@ -81,6 +81,10 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 
 当前 BSP 支持 FAT mount,DoerS3 真机已确认 SD 卡可挂载.
 
+新式自检复测 (2026-10-09, sha `5fecc25`, `test/bsp.sh sdcard doers3`): 8/8 PASS.
+
+- 卡信息: `SDABC`, SDHC, 30003.5 MB, 1-bit @ 20 MHz;覆盖 mount/unmount, 信息查询, 挂载点校验和 4096 字节写读回.
+
 ### DVP 摄像头, GC0308
 
 | 信号 | 连接 |
@@ -199,3 +203,13 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | gyro `512dps@250Hz` (`CTRL3=0xD5`,含 self-test 位) | gyro 设定 `512dps@1000Hz` (`CTRL3=0x43`),不开 self-test | 本仓库自有取值;`CTRL3=0x43` 的 `gFS` 换算见 `docs/bsp/status.md` 挂起项 |
 | `CTRL7` 使能后不等首样本,主循环未就绪时沿用旧值 | `open()` 只配置,调用方用 `bsp_imu_is_data_ready()` 等首样本 | 明确契约,避免把未产出的零值样本当有效读数 |
 | I2C `100 kHz` | `400 kHz` | 与全板 I2C 速率统一 |
+
+### 03-micro_sd -> `bsp_sdcard`
+
+一致项: 引脚 CLK `IO47` / CMD `IO48` / D0 `IO21`,1-bit SDMMC,内部上拉,`max_files=5`,20 MHz,挂载点 `/sdcard`.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| `format_if_mount_failed = true` | `false` | 格式化是破坏性操作,BSP 不自动执行 |
+| `allocation_unit_size = 16 KB` | 32 KB | 批量写场景减少 FAT 簇链开销;该值只影响性能,不影响挂载兼容性 |
+| `CONFIG_FATFS_VFS_FSTAT_BLKSIZE=4096` | IDF 默认 | 当前没有对该值敏感的使用路径;需要时再对齐 |

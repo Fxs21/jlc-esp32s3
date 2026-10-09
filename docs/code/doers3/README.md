@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `01-boot_key` | BOOT 按键 | 未进入 BSP API | — |
 | `02-attitude` | QMI8658 姿态 | `bsp_imu` | 已核对删除 |
-| `03-micro_sd` | SD 卡 | `bsp_sdcard` | 待复测 |
+| `03-micro_sd` | SD 卡 | `bsp_sdcard` | 已核对删除 |
 | `04-audio_es7210` | ES7210 录音 | `bsp_audio` | 待复测 |
 | `05-audio_es8311` | ES8311 播放 | `bsp_audio` | 待复测 |
 | `06-lcd` | ST7789 LCD | `bsp_display` | 待复测 |
