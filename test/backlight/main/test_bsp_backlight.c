@@ -13,6 +13,7 @@
 #include "bsp_display.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "selftest.h"
@@ -28,12 +29,23 @@ static const char *TAG = "test_bsp_backlight";
 #define STEP_HOLD_MS 1500
 // 人工确认窗口.
 #define HUMAN_TIMEOUT_MS 30000
+// 等传输完成回调的上限 (fill_screen 是异步写).
+#define DONE_TIMEOUT_MS 3000
 
 // host order 的 RGB565; 面板字节序在写之前才转换.
 #define RGB565(r, g, b) ((uint16_t)((((r) & 0xF8u) << 8) | (((g) & 0xFCu) << 3) | ((b) >> 3)))
 
 static bsp_display_handle_t s_display;
 static bsp_backlight_handle_t s_backlight;
+
+static volatile uint32_t s_done_count;
+
+static bool IRAM_ATTR on_transfer_done(void *user_ctx)
+{
+    (void)user_ctx;
+    s_done_count++;
+    return false;
+}
 
 // 面板原生字节序, 见 docs/hw/boards/<board>/truth_table.md (与 test/display 同源).
 static uint16_t panel_color(uint16_t rgb565)
@@ -54,12 +66,27 @@ void tearDown(void)
         s_backlight = NULL;
     }
     if (s_display != NULL) {
+        // 完成回调在 ISR 里调用, 释放 handle 之前先摘掉.
+        (void)bsp_display_set_done_cb(s_display, NULL, NULL);
         (void)bsp_display_close(s_display);
         s_display = NULL;
     }
 }
 
+static bool wait_done_count(uint32_t target)
+{
+    const int64_t deadline_us = esp_timer_get_time() + (int64_t)DONE_TIMEOUT_MS * 1000;
+    while (esp_timer_get_time() < deadline_us) {
+        if (s_done_count >= target) {
+            return true;
+        }
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+    return false;
+}
+
 // 背光的观察面: 屏幕整屏填色.
+// bsp_display_write() 是异步的: strip 要等这一轮发出的传输全部回调完成再释放.
 static esp_err_t fill_screen(uint16_t color)
 {
     const bsp_display_info_t *info = bsp_display_get_info(NULL);
@@ -76,6 +103,8 @@ static esp_err_t fill_screen(uint16_t color)
         strip[i] = color;
     }
 
+    const uint32_t base = s_done_count;
+    uint32_t issued = 0;
     esp_err_t ret = ESP_OK;
     uint16_t done = 0;
     while (done < info->height) {
@@ -86,17 +115,24 @@ static esp_err_t fill_screen(uint16_t color)
         if (ret != ESP_OK) {
             break;
         }
+        issued++;
         done = (uint16_t)(done + lines);
     }
 
+    const bool drained = wait_done_count(base + issued);
     free(strip);
-    return ret;
+    if (ret != ESP_OK) {
+        return ret;
+    }
+    return drained ? ESP_OK : ESP_ERR_TIMEOUT;
 }
 
 static void open_display(void)
 {
     s_display = NULL;
     TEST_ASSERT_EQUAL(ESP_OK, bsp_display_open(&s_display));
+    // 所有写都是异步的: 统一挂上 done 计数, fill_screen 靠它等传输完成.
+    TEST_ASSERT_EQUAL(ESP_OK, bsp_display_set_done_cb(s_display, on_transfer_done, NULL));
 }
 
 static void open_backlight(void)

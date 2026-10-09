@@ -31,6 +31,9 @@ const bsp_display_info_t *bsp_display_get_info(bsp_display_handle_t handle);
 esp_err_t bsp_display_set_done_cb(bsp_display_handle_t handle,
                                   bsp_display_transfer_done_cb_t cb,
                                   void *user_ctx);
+// Asynchronous: returns once the pixels are queued to the panel IO. The data buffer
+// must stay valid until the transfer done callback fires; do not close the display
+// while a transfer is in flight.
 esp_err_t bsp_display_write(bsp_display_handle_t handle,
                                   uint16_t x,
                                   uint16_t y,

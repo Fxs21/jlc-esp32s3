@@ -86,6 +86,8 @@ static void open_display(void)
     s_display = NULL;
     TEST_ASSERT_EQUAL(ESP_OK, bsp_display_open(&s_display));
     TEST_ASSERT_NOT_NULL(s_display);
+    // 所有写都是异步的: 统一挂上 done 计数, fill_rect 靠它等传输完成.
+    TEST_ASSERT_EQUAL(ESP_OK, bsp_display_set_done_cb(s_display, on_transfer_done, NULL));
 }
 
 // 背光是"能看见画面"的前提, 不是本 app 的被测对象.
@@ -100,7 +102,21 @@ static void open_backlight(void)
     TEST_ASSERT_EQUAL(ESP_OK, bsp_backlight_set_percent(s_backlight, 100));
 }
 
+static bool wait_done_count(uint32_t target)
+{
+    const int64_t deadline_us = esp_timer_get_time() + (int64_t)DONE_TIMEOUT_MS * 1000;
+    while (esp_timer_get_time() < deadline_us) {
+        if (s_done_count >= target) {
+            return true;
+        }
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+    return false;
+}
+
 // 用固定高度的横条填一块矩形: 面积再大也只占 width x STRIP_LINES 的缓冲.
+// bsp_display_write() 是异步的: strip 要等这一轮发出的传输全部回调完成再释放,
+// 否则队列里 pending 的横条会读到下一块图案复用后的内存, 真机上表现为底部残留色条.
 static esp_err_t fill_rect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color)
 {
     const size_t strip_px = (size_t)width * STRIP_LINES;
@@ -112,6 +128,8 @@ static esp_err_t fill_rect(uint16_t x, uint16_t y, uint16_t width, uint16_t heig
         strip[i] = color;
     }
 
+    const uint32_t base = s_done_count;
+    uint32_t issued = 0;
     esp_err_t ret = ESP_OK;
     uint16_t done = 0;
     while (done < height) {
@@ -121,23 +139,16 @@ static esp_err_t fill_rect(uint16_t x, uint16_t y, uint16_t width, uint16_t heig
         if (ret != ESP_OK) {
             break;
         }
+        issued++;
         done = (uint16_t)(done + lines);
     }
 
+    const bool drained = wait_done_count(base + issued);
     free(strip);
-    return ret;
-}
-
-static bool wait_done_count(uint32_t target)
-{
-    const int64_t deadline_us = esp_timer_get_time() + (int64_t)DONE_TIMEOUT_MS * 1000;
-    while (esp_timer_get_time() < deadline_us) {
-        if (s_done_count >= target) {
-            return true;
-        }
-        vTaskDelay(pdMS_TO_TICKS(1));
+    if (ret != ESP_OK) {
+        return ret;
     }
-    return false;
+    return drained ? ESP_OK : ESP_ERR_TIMEOUT;
 }
 
 // 人工项: y = 通过, n = 失败, 超时/无输入 = pending, 既不算通过也不算失败.
@@ -202,14 +213,15 @@ TEST_CASE("display: null and out-of-range arguments rejected", "[display]")
                       bsp_display_write(s_display, 0, (uint16_t)(info->height - 1), 2, 2, pixels, 8));
     // data_size 不足: 4 x 4 RGB565 需要 32 B.
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, bsp_display_write(s_display, 0, 0, 4, 4, pixels, 30));
-    // 合法的最小写入.
+    // 合法的最小写入. pixels 是栈上缓冲, 等传输完成再离开本用例.
+    const uint32_t base = s_done_count;
     TEST_ASSERT_EQUAL(ESP_OK, bsp_display_write(s_display, 0, 0, 2, 2, pixels, 8));
+    TEST_ASSERT_TRUE(wait_done_count(base + 1));
 }
 
 TEST_CASE("display: done callback fires once per queued write", "[display]")
 {
     open_display();
-    TEST_ASSERT_EQUAL(ESP_OK, bsp_display_set_done_cb(s_display, on_transfer_done, NULL));
 
     const bsp_display_info_t *info = bsp_display_get_info(NULL);
     const uint32_t writes = ((uint32_t)info->height + STRIP_LINES - 1) / STRIP_LINES;
@@ -277,7 +289,7 @@ TEST_CASE("display: centered frame and cross", "[display]")
                                         LINE_THICKNESS, cross, white));
 
     human_check("frame-centered",
-                "is the cross in the middle of the round panel and the square frame symmetric on all sides?");
+                "is the cross in the middle of the panel and the square frame symmetric on all sides?");
 }
 
 TEST_CASE("display: left edge marker reaches the panel edge", "[display]")

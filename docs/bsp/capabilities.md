@@ -37,6 +37,7 @@
 ### Display 是 board-native,不是统一 framebuffer
 
 - `bsp_display_write()` 只发送 board-native pixel byte stream,`data_size` 只做内存安全校验.
+- `bsp_display_write()` 是异步的: 调用只把像素排进面板 IO 队列,`data` 必须保持有效直到 done 回调触发;调用方在 close 前要保证没有未完成的传输.
 - 两块板 byte order 不同: DoerS3 ST7789 为 little-endian RGB565,AuraS3 CO5300 为 high-byte-first.
 - app 不要假设统一 RGB565 语义;要画 UI 请用 `bsp_ui_*`.
 - AuraS3 QSPI 写入有 2 像素粒度限制,dirty area 由 board port 做 2 像素 rounder.
