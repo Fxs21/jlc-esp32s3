@@ -26,7 +26,8 @@
 - AuraS3 `pmu` 走完新式自检闭环,真机 `PASS` (2026-10-08, sha `90dc3f7-dirty`): 7 项 0 失败 1 ignored (未接电池, 插拔电池项 pending);期间修复 `open` 失败未清空 `handle_out`,以及"新 `open` 后 ADC 首轮转换未完成即断言"两处缺陷;软件关机 USB 场景真机验证: 断电成功, 无自动回电, 关机后短按 `KEY2` 可开机;例程 `01_AXP2101` 已对照删除,结论见 `docs/hw/boards/auras3/truth_table.md` §14.
 - AuraS3 `i2c` 走完新式自检, 真机 `PASS` (2026-10-08, sha `acfcff3-dirty`): 4/4; 扫描到 7 个设备与 truth table I2C 清单一致; 该 app 兼作总线诊断入口, 完整扫描表随日志输出.
 - DoerS3 `i2c` 走完新式自检, 真机 `PASS` (2026-10-08, sha `32e06a9`): 4/4, 干净 sha; 扫描到 5 个设备与 truth table 一致; 阶段 6 (DoerS3 复测) 首个模块.
-- 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,imu,audio,camera,gnss;两板 shell 调试入口和 UI 正常.
+- DoerS3 `imu` 走完新式自检闭环, AuraS3 `imu` 同 sha 复测 (2026-10-09, sha `e6ed4b6`): 双板各 6/6 PASS; 期间把 `CTRL1` 改为显式小端 (`0x60` -> `0x40`), 等待不进 driver, `open()` 契约明确为 "配置 + 独占 + 单位", 首样本由调用方用 `bsp_imu_is_data_ready()` 把关; 真机实证 `BE` 位不生效, 手册 Table 22 矛盾处按实测; 例程 `02-attitude` 已核对删除, 结论见 `docs/hw/boards/doers3/truth_table.md` §5.
+- 旧口径真机能力 (未按新式自检复测): DoerS3 display,touch,backlight,sdcard,audio,camera,gnss;两板 shell 调试入口和 UI 正常.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
 
@@ -38,7 +39,7 @@
 - AuraS3 audio 喇叭响度未验证: 台位未接喇叭, 自检人工项 pending;回采判据与喇叭无关, 接上喇叭后补测该人工项.
 - DoerS3 audio (含回采和 full-duplex) 未复测: board port 已对齐新设计, `supports_full_duplex` 暂为 `false`.
 - AuraS3 触摸多点能力未真机确认,当前只承诺单点 (`max_points = 1`).
-- QMI8658 `CTRL1` 的 `BE` 位与手册 Table 22 描述不一致,当前沿用板厂小端解析;需要绝对精度时复测.
+- QMI8658 gyro 量程换算挂起 (2026-10-09): 驱动 enum 把 `CTRL3` 的 `gFS=100` 记为 `512dps`, 手册 Table 22 为 ±256dps; 若按手册, gyro 读数偏大约 2 倍; 先不改代码, 修复后需双板复测 `imu`.
 - TE wait 默认不启用,后续研究参考 `docs/hw/auras3-display-te.md`.
 - AuraS3 RTC 掉电保持未验证: 板上无备份电池 (`VBACKUP` 接 `VBAT2`),拔电丢时是预期行为,装电池后补测.
 
@@ -46,7 +47,7 @@
 
 1. 阶段4 (AuraS3 铺开): `pmu` 自检与 USB 场景软件关机,`i2c` 总线自检已完成;剩余 `gnss` 待模组贴装,当前自检输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;AuraS3 例程 `01`~`07` 已全部核对删除.
-3. 阶段6 (DoerS3): 进行中, 用同一套自检 app 复测全部模块; `i2c` 已完成, 其余模块待测.
+3. 阶段6 (DoerS3): 进行中, 用同一套自检 app 复测全部模块; `i2c`,`imu` 已完成, 其余模块待测 (audio 暂跳过).
 4. PMU: 仅电池 / USB+电池两种供电场景的软件关机行为待电池到位后验证 (USB 场景已完成, 记录见 `docs/hw/auras3-pmu-key.md`);验证入口是 `test/pmu` 自检结束后的引导步.
 5. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
 6. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.

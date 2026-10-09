@@ -199,6 +199,9 @@ gyro  rad/s: x=-0.059 y= 0.008 z= 0.114
 temp      C: 33.71
 ```
 
+- 新式自检复测 (2026-10-09, sha `e6ed4b6`, `test/bsp.sh imu auras3`): 6/6 PASS;`open()` 契约明确为配置 + 独占 + 单位,首样本由调用方用 `bsp_imu_is_data_ready()` 把关;实测 accel 模长 9.95~10.06 m/s^2,温度约 29.2 ℃.
+- `CTRL1` 现显式写 `0x40` (`ADDR_AI=1`, `BE=0`),与驱动小端解析路径一致;真机实证 `BE=1` 时芯片仍按小端输出,手册 Table 22 与实测矛盾处按实测记录.
+
 ## 8. Audio, ES8311 + ES7210 + I2S
 
 | 信号 | ESP32-S3 GPIO | 连接/用途 | 来源/备注 |
@@ -339,7 +342,7 @@ temp      C: 33.71
 | 开 accel LPF (mode 0) 和 gyro LPF (mode 3),写 `CTRL5` | `CTRL5` 保持 0 | BSP 交付未滤波的原始读数,滤波策略交给上层;不影响寄存器序列正确性 |
 | `configAccelerometer` / `configGyroscope` 默认 `selfTest = true`,置 `CTRL2/CTRL3` bit7 | 不开 self-test | self-test 是产测动作,不在 `open()` 常态开启 |
 | I2C 100 kHz | 400 kHz | 与全板 I2C 速率统一 |
-| `CTRL1` 保持出厂 `BE=1`,手册 Table 22 写作"大端",例程与本仓库都按小端解析 | 沿用板厂实现 | 真机加速度模长 9.96~9.99 m/s^2 合理;手册与实测矛盾处留在本条,需要时用静态姿态基准复测 |
+| `CTRL1` 保持出厂 `BE=1` 并按小端解析 | 驱动现显式写 `0x40` (`BE=0`) | 真机实证 `BE=1` 时芯片仍按小端输出 (2026-10-09, sha `e6ed4b6`);手册 Table 22 与实测矛盾处按实测,显式 `BE=0` 与解析路径一致 |
 
 ### 04_SD_MMC -> `bsp_sdcard`
 
@@ -426,4 +429,3 @@ temp      C: 33.71
 ### 待办
 
 - 触摸多点能力: 真机确认后再决定是否承诺 `max_points > 1` 及相关 API.
-- IMU `CTRL1` 的 `BE` 位与手册描述不一致: 需要绝对精度时用静态姿态基准复测字节序.

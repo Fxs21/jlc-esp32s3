@@ -27,7 +27,7 @@
 
 PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 
-## 3. LCD / Touch / SD / Camera / Audio / GPS 关键信号
+## 3. LCD / Touch / IMU / SD / Camera / Audio / GPS 关键信号
 
 ### LCD, ST7789 TFT
 
@@ -56,6 +56,20 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 | I2C 地址 | `0x38` |
 
 当前 BSP 使用 private `ft6336` driver,public API 返回 BSP 自有 touch point 结构.
+
+### IMU, QMI8658
+
+| 信号 | 连接/值 | 备注 |
+|---|---|---|
+| I2C SDA / SCL | `IO1_I2C_SDA` / `IO2_I2C_SCL` | 主 I2C |
+| I2C 地址 | `0x6A` | 真机 `i2c_scan` 确认 |
+| 中断脚 | 未连接 | 当前 BSP polling,不使用中断 |
+
+新式自检复测 (2026-10-09, sha `e6ed4b6`, `test/bsp.sh imu doers3`): 6/6 PASS.
+
+- `open()` 契约: 只完成配置和独占,单位 `m/s^2` / `rad/s`;首样本由调用方用 `bsp_imu_is_data_ready()` 把关.
+- 实测 accel 模长 9.91~9.96 m/s^2,静态 gyro 噪声约 0.14 rad/s,温度约 31.1 ℃.
+- `CTRL1` 的 `BE` 位实证: 写 `0x60` (`BE=1`) 时芯片仍按小端输出;现驱动显式写 `0x40` (`ADDR_AI=1`, `BE=0`) 与小端解析对齐,手册 Table 22 与实测矛盾处按实测记录.
 
 ### SD card, 1-bit SDMMC
 
@@ -164,7 +178,24 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_touch` | FT6336 已实现,真机确认 |
 | `bsp_backlight` | LEDC backlight 已实现 |
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
-| `bsp_imu` | QMI8658 已实现,真机确认 |
+| `bsp_imu` | QMI8658 已实现;新式自检 6/6 PASS (2026-10-09, sha `e6ed4b6`) |
 | `bsp_audio` | 会话模型 (record mask,TDM 回采,full-duplex) 已对齐实现;播放真机确认,新式自检未复测 |
 | `bsp_camera` | GC0308 QVGA RGB565 单帧采集已实现,真机确认 |
 | `bsp_gnss` | MAX-M10S UART NMEA 已实现,真机确认 |
+
+## 5. 例程对照结论
+
+对照 `docs/code/doers3/` 例程源码,逐项核对初始化序列,地址和取值;一致项已由 driver 覆盖,差异项按下表记录"例程行为 / 本仓库取舍 / 理由".核对基线: 2026-10-09, sha `e6ed4b6`.已核对完毕的例程从 `docs/code/` 删除.
+
+### 02-attitude -> `bsp_imu`
+
+一致项: 地址 `0x6A`,WHO_AM_I `0x05`,`CTRL1` 地址自增,`CTRL7` bit0/bit1 使能 accel/gyro,`STATUS0 & 0x03` 判数据就绪,`AX_L` 起 12 字节 burst 小端解析.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| `RESET` (`0x60`) 写 `0xB0` 后等 10 ms | 不复位,直接写配置 | 复位不是硬件约束;上电默认配置下直接配置,双板真机复测稳定 |
+| `CTRL1` 写 `0x40` (`ADDR_AI=1`, `BE=0`) | 同样写 `0x40` (此前沿用 `BE=1`,已改为显式 `BE=0`) | 真机实证 `BE=1` 时芯片仍按小端输出,手册 Table 22 与实测矛盾处按实测;显式 `BE=0` 让配置和解析路径一致 |
+| accel `4G@250Hz` (`CTRL2=0x95`,含 self-test 位) | accel `8G@1000Hz` (`CTRL2=0x23`),不开 self-test | 覆盖更大动态范围;self-test 是产测动作,不放进 `open()` |
+| gyro `512dps@250Hz` (`CTRL3=0xD5`,含 self-test 位) | gyro 设定 `512dps@1000Hz` (`CTRL3=0x43`),不开 self-test | 本仓库自有取值;`CTRL3=0x43` 的 `gFS` 换算见 `docs/bsp/status.md` 挂起项 |
+| `CTRL7` 使能后不等首样本,主循环未就绪时沿用旧值 | `open()` 只配置,调用方用 `bsp_imu_is_data_ready()` 等首样本 | 明确契约,避免把未产出的零值样本当有效读数 |
+| I2C `100 kHz` | `400 kHz` | 与全板 I2C 速率统一 |

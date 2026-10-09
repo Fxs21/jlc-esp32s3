@@ -8,7 +8,7 @@
 |---|---|
 | `truth_table.md` | 硬件真值表: pin,bus,地址,待确认项和验证记录 |
 | `schematic/schematic.pdf` | 原理图,3 页 (原文件 `SCH_ESP32-S3-V1_0_1_2026-04-20.pdf`);分页图 `page-01..03.png` |
-| `docs/code/doers3/01-boot_key` ~ `08-lcd_lvgl` | 从官方例程包提取的 BSP 对照例程,范围和约定见 `docs/code/doers3/README.md` |
+| `docs/code/doers3/` | 从官方例程包提取的 BSP 对照例程,复测期间逐模块核对,核对完毕的已删除;范围和约定见 `docs/code/doers3/README.md` |
 
 ## 官方来源
 
