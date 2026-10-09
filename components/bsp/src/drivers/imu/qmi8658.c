@@ -41,7 +41,9 @@ esp_err_t qmi8658_init(qmi8658_dev_t *dev, i2c_master_bus_handle_t bus_handle, u
         return ESP_ERR_NOT_FOUND;
     }
     
-    ret = qmi8658_write_register(dev, QMI8658_CTRL1, 0x60);
+    /* ADDR_AI=1 (register address auto-increment), BE=0 (little-endian, matching
+       the byte order assumed by the read paths below). */
+    ret = qmi8658_write_register(dev, QMI8658_CTRL1, 0x40);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize sensor");
         return ret;
@@ -60,7 +62,8 @@ esp_err_t qmi8658_init(qmi8658_dev_t *dev, i2c_master_bus_handle_t bus_handle, u
     if (ret != ESP_OK) return ret;
     
     ret = qmi8658_enable_sensors(dev, QMI8658_ENABLE_ACCEL | QMI8658_ENABLE_GYRO);
-    
+    if (ret != ESP_OK) return ret;
+
     ESP_LOGI(TAG, "QMI8658 initialized successfully");
     return ret;
 }

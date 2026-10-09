@@ -29,6 +29,9 @@ typedef struct {
 
 const bsp_imu_desc_t *bsp_imu_get_desc(void);
 
+// On success the device is configured and units are fixed (m/s^2, rad/s);
+// the first sample may not be ready yet, so callers must gate data use on
+// bsp_imu_is_data_ready().
 // On failure, *handle_out is set to NULL after handle_out is validated.
 esp_err_t bsp_imu_open(bsp_imu_handle_t *handle_out);
 esp_err_t bsp_imu_close(bsp_imu_handle_t handle);

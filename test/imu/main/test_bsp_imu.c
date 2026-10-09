@@ -26,6 +26,8 @@ static const char *TAG = "test_bsp_imu";
 #define SAMPLE_COUNT 10
 // is_data_ready 轮询上限; ODR 1000 Hz, 100 ms 内约 100 个样本.
 #define READY_POLL_MS 100
+// open 不等待首个样本, 数据类用例先按契约自己等就绪.
+#define FIRST_SAMPLE_WAIT_MS 200
 
 static bsp_imu_handle_t s_imu;
 
@@ -57,6 +59,20 @@ static void read_sample(bsp_imu_data_t *data)
 {
     *data = (bsp_imu_data_t){0};
     TEST_ASSERT_EQUAL(ESP_OK, bsp_imu_read(s_imu, data));
+}
+
+// open 契约: 只保证配置完成, 首个样本可能还未产出 (此时 read 返回零值).
+// 调用方按契约先用 is_data_ready 把关, 再开始使用数据.
+static void wait_first_sample(void)
+{
+    bool ready = false;
+    for (int waited_ms = 0; !ready && waited_ms < FIRST_SAMPLE_WAIT_MS; waited_ms += 5) {
+        TEST_ASSERT_EQUAL(ESP_OK, bsp_imu_is_data_ready(s_imu, &ready));
+        if (!ready) {
+            vTaskDelay(pdMS_TO_TICKS(5));
+        }
+    }
+    TEST_ASSERT_TRUE(ready);
 }
 
 TEST_CASE("imu: open and close", "[imu]")
@@ -97,6 +113,7 @@ TEST_CASE("imu: null arguments rejected", "[imu]")
 TEST_CASE("imu: readings are in range", "[imu]")
 {
     open_imu();
+    wait_first_sample();
 
     for (int i = 0; i < SAMPLE_COUNT; i++) {
         bsp_imu_data_t data;
@@ -119,6 +136,7 @@ TEST_CASE("imu: readings are in range", "[imu]")
 TEST_CASE("imu: sample counter advances", "[imu]")
 {
     open_imu();
+    wait_first_sample();
 
     uint32_t previous = 0;
     int advances = 0;
