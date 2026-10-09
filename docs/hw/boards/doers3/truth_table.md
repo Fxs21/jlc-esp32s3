@@ -13,6 +13,8 @@
 | ES7210 地址 | `0x41` 7-bit |
 | ES8311 地址 | `0x18` 7-bit |
 
+- 自检 `test/i2c` (2026-10-08, sha `32e06a9`): 4/4 PASS; 扫描到上表 5 个设备, 总线上无其他在线地址.
+
 当前 BSP 使用 common I2C bus owner,DoerS3 board wrapper 负责传入 `IO1/IO2` pin,port 和 speed.
 
 ## 2. IO 扩展, PCA9557
