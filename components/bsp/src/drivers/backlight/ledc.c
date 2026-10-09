@@ -17,6 +17,12 @@ struct backlight_ledc_s {
     bool output_invert;
 };
 
+// LEDC 的通道/引脚配置是持久硬件状态: ledc_stop() 不会释放 GPIO 保留
+// (esp_gpio_reserve 把引脚记在 LEDC 名下, 驱动从不 revoke), 重复对同一引脚
+// ledc_channel_config() 会打印误报警告 "GPIO xx is not usable, maybe conflict
+// with others". 因此只在首次 open 配置 timer 和 channel, 之后 open/close 只开关输出.
+static bool s_configured;
+
 static esp_err_t off(void)
 {
     return ledc_stop(BL_LEDC_MODE, BL_LEDC_CHANNEL, 0);
@@ -32,36 +38,41 @@ esp_err_t backlight_ledc_open(const backlight_ledc_config_t *cfg, backlight_ledc
     handle->gpio = cfg->gpio;
     handle->output_invert = cfg->output_invert;
 
-    ledc_timer_config_t timer_cfg = {
-        .speed_mode = BL_LEDC_MODE,
-        .timer_num = BL_LEDC_TIMER,
-        .duty_resolution = BL_DUTY_RESOLUTION,
-        .freq_hz = BL_PWM_FREQ_HZ,
-        .clk_cfg = LEDC_AUTO_CLK,
-    };
-    esp_err_t ret = ledc_timer_config(&timer_cfg);
-    if (ret != ESP_OK) {
-        free(handle);
-        return ret;
+    esp_err_t ret = ESP_OK;
+    if (!s_configured) {
+        ledc_timer_config_t timer_cfg = {
+            .speed_mode = BL_LEDC_MODE,
+            .timer_num = BL_LEDC_TIMER,
+            .duty_resolution = BL_DUTY_RESOLUTION,
+            .freq_hz = BL_PWM_FREQ_HZ,
+            .clk_cfg = LEDC_AUTO_CLK,
+        };
+        ret = ledc_timer_config(&timer_cfg);
+        if (ret != ESP_OK) {
+            free(handle);
+            return ret;
+        }
+
+        ledc_channel_config_t channel_cfg = {
+            .speed_mode = BL_LEDC_MODE,
+            .channel = BL_LEDC_CHANNEL,
+            .timer_sel = BL_LEDC_TIMER,
+            .intr_type = LEDC_INTR_DISABLE,
+            .gpio_num = handle->gpio,
+            .duty = 0,
+            .hpoint = 0,
+            .flags = {
+                .output_invert = handle->output_invert,
+            },
+        };
+        ret = ledc_channel_config(&channel_cfg);
+        if (ret != ESP_OK) {
+            free(handle);
+            return ret;
+        }
+        s_configured = true;
     }
 
-    ledc_channel_config_t channel_cfg = {
-        .speed_mode = BL_LEDC_MODE,
-        .channel = BL_LEDC_CHANNEL,
-        .timer_sel = BL_LEDC_TIMER,
-        .intr_type = LEDC_INTR_DISABLE,
-        .gpio_num = handle->gpio,
-        .duty = 0,
-        .hpoint = 0,
-        .flags = {
-            .output_invert = handle->output_invert,
-        },
-    };
-    ret = ledc_channel_config(&channel_cfg);
-    if (ret != ESP_OK) {
-        free(handle);
-        return ret;
-    }
     ret = off();
     if (ret != ESP_OK) {
         free(handle);
