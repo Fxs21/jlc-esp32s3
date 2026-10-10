@@ -138,9 +138,13 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 
 test_app 验证:
 
-- viewfinder 连续 200 帧: `capture -> byte-swap -> bsp_display_write`,真机通过.
 - byte-swap 原因: camera 输出 big-endian RGB565,display native contract 为 little-endian RGB565.
 - 实测约 10 FPS (QVGA RGB565 ~153KB/frame + SPI DMA `@80MHz`).
+
+新式自检复测 (2026-10-10, sha `d914bab`, `test/bsp.sh camera doers3`): 1/1 PASS.
+
+- 覆盖: desc, 背光 50%, display 同开下的 200 帧 `capture -> byte-swap -> bsp_display_write`, 0 传输超时.
+- 真机事实: GC0308 PID `0x9b`, SCCB 地址 `0x21`;subsample 窗口 640x480 ratio 0.5 到 QVGA;帧缓冲 153600 B PSRAM.
 
 ### Audio, ES8311 + ES7210
 
@@ -206,7 +210,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
 | `bsp_imu` | QMI8658 已实现;新式自检 6/6 PASS (2026-10-09, sha `e6ed4b6`) |
 | `bsp_audio` | 会话模型 (record mask,TDM 回采,full-duplex) 已对齐实现;播放真机确认,新式自检未复测 |
-| `bsp_camera` | GC0308 QVGA RGB565 单帧采集已实现,真机确认 |
+| `bsp_camera` | GC0308 QVGA RGB565 单帧采集;新式自检 1/1 PASS (2026-10-10, sha `d914bab`) |
 | `bsp_gnss` | MAX-M10S UART NMEA 已实现,真机确认 |
 
 ## 5. 例程对照结论
@@ -246,6 +250,17 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | 未设置 `data_endian`, 面板 `RAMCTL` 保持默认 big-endian | `data_endian = LCD_RGB_DATA_ENDIAN_LITTLE` (面板 `RAMCTL` 置 little-endian 位) | 调用方直接传 LVGL / host-order RGB565, flush 路径不逐像素换序 |
 | LEDC `LEDC_TIMER_1`, 10-bit duty (100% = 1023) | `LEDC_TIMER_0`, 13-bit duty (100% = 8191) | timer0 与 camera XCLK 的 `LEDC_TIMER_1` 分开, backlight 与 camera 在同一镜像共存;13-bit 是 5 kHz 下可取的最高分辨率 |
 | 背光 percent -> 1023 取整 | percent -> 8191 取整, 百分比语义不变 | 档位更细, API 语义一致 |
+
+### 07-lcd_camera -> `bsp_camera`
+
+一致项: DVP 引脚组 (D0..D7 `IO16`/`IO18`/`IO8`/`IO17`/`IO15`/`IO6`/`IO4`/`IO9`, XCLK `IO5`, PCLK `IO7`, VSYNC `IO3`, HREF `IO46`);SCCB 走公共 I2C (`pin_sccb_sda = -1`);PWDN 经 PCA9557 IO2, `0` 为工作态;`PIXFORMAT_RGB565` + `FRAMESIZE_QVGA`;`fb_location = PSRAM`, `grab_mode = CAMERA_GRAB_WHEN_EMPTY`;相机 XCLK 用 LEDC `timer1` / `channel1`, 背光 `timer0` (07 例程的 LCD 部分与 06 仅此 timer 不同, 且与本仓库一致;背光分辨率取舍见 06 条目).
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| XCLK `24 MHz` | `20 MHz` | 建仓早期板级取值;真机 200 帧 0 超时, 未做 24 MHz 对照 |
+| `fb_count = 2` + 双任务 queue 常刷取景器 | `fb_count = 1`, 只承诺 `open -> capture -> release_frame` 单帧 | BSP 不承载取景器框架, app 决定刷新节奏;省一个 153600 B PSRAM 帧缓冲 |
+| GC0308 `set_hmirror(1)` (镜像) | 保持 sensor 默认 | 取景方向未目视裁决, `待真机确认`;方法: 镜头对文字, 可读 = 默认正确, 反字 = 需补 hmirror |
+| 直传 `frame->buf` 不换序 (面板默认 big-endian) | 调用方 byte swap 后写入 (面板 little-endian) | 显示端取舍见 06 条目;`test/camera` 演示 big-endian -> host-order 转换 |
 
 ### 08-lcd_lvgl -> `bsp_touch`, `bsp_ui`
 

@@ -10,7 +10,7 @@
 | `04-audio_es7210` | ES7210 录音 | `bsp_audio` | 待复测 |
 | `05-audio_es8311` | ES8311 播放 | `bsp_audio` | 待复测 |
 | `06-lcd` | ST7789 LCD | `bsp_display` | 已核对删除 |
-| `07-lcd_camera` | LCD + GC0308 摄像头 | `bsp_camera` | 待复测 |
+| `07-lcd_camera` | LCD + GC0308 摄像头 | `bsp_camera` | 已核对删除 |
 | `08-lcd_lvgl` | LCD + LVGL + 触摸 | `bsp_touch`, `bsp_ui` | 已核对删除 |
 
 约定:
