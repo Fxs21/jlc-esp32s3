@@ -198,6 +198,11 @@ test_app 验证:
 
 DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `docs/hw/specs/chips/max-m10s_datasheet.pdf`.
 
+新式自检复测 (2026-10-10, sha `646235d`, `test/bsp.sh gnss doers3`): 2/2 PASS.
+
+- 覆盖: open/close/reopen, 首包 NMEA 报文.
+- 室内无定位 (RMC `V`, GGA 0 星) 也持续输出 `GNRMC` / `GNVTG` / `GNGGA` / `GNGSA`;自检只要求报文到达, 不要求定位.
+
 ## 4. 当前 BSP 能力和验证状态
 
 | BSP 模块 | DoerS3 状态 |
@@ -211,7 +216,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_imu` | QMI8658 已实现;新式自检 6/6 PASS (2026-10-09, sha `e6ed4b6`) |
 | `bsp_audio` | 会话模型 (record mask,TDM 回采,full-duplex) 已对齐实现;播放真机确认,新式自检未复测 |
 | `bsp_camera` | GC0308 QVGA RGB565 单帧采集;新式自检 1/1 PASS (2026-10-10, sha `d914bab`) |
-| `bsp_gnss` | MAX-M10S UART NMEA 已实现,真机确认 |
+| `bsp_gnss` | MAX-M10S UART NMEA 已实现;新式自检 2/2 PASS (2026-10-10, sha `646235d`) |
 
 ## 5. 例程对照结论
 
