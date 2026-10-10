@@ -34,7 +34,8 @@
 - DoerS3 `ui` 复测 (2026-10-10, sha `98bd54d`): 6/6 PASS, 1 个人工项 `yes` (widgets demo 渲染完整, 触摸跟手), 干净 sha;两块核对完毕后例程 `08-lcd_lvgl` 已删除.
 - DoerS3 `camera` 复测 (2026-10-10, sha `d914bab`): 1/1 PASS, 干净 sha;200 帧取景通路零超时;取景方向 (例程设 `hmirror(1)`, 本仓库保持默认) 未目视裁决;例程 `07-lcd_camera` 已核对删除.
 - DoerS3 `gnss` 复测 (2026-10-10, sha `646235d`): 2/2 PASS, 干净 sha;P1 座模组, 室内无定位状态下持续输出 `GNRMC`/`GNVTG`/`GNGGA`/`GNGSA`;例程包无 GNSS 条目, 无删除项.
-- 旧口径真机能力 (未按新式自检复测): DoerS3 audio;两板 shell 调试入口正常.
+- DoerS3 `shell` 复测 (2026-10-10, sha `d849d5e`): 4/4 PASS, 干净 sha;自检后 repl 保留供人工调试, `bsp info` 手工核对正常;至此阶段6除 `audio` 暂跳过外全部完成.
+- 旧口径真机能力 (未按新式自检复测): DoerS3 audio.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
 
@@ -55,7 +56,7 @@
 
 1. 阶段4 (AuraS3 铺开): `pmu` 自检与 USB 场景软件关机,`i2c` 总线自检已完成;剩余 `gnss` 待模组贴装,当前自检输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;AuraS3 例程 `01`~`07` 已全部核对删除.
-3. 阶段6 (DoerS3): 进行中, 用同一套自检 app 复测全部模块; `i2c`,`imu`,`sdcard`,`display`,`backlight`,`touch`,`ui`,`camera`,`gnss` 已完成, 其余模块待测 (audio 暂跳过).
+3. 阶段6 (DoerS3): 复测完成 (`i2c`,`imu`,`sdcard`,`display`,`backlight`,`touch`,`ui`,`camera`,`gnss`,`shell` 全部走完闭环), 仅 `audio` 暂跳过 (回采和 full-duplex 未复测).
 4. PMU: 仅电池 / USB+电池两种供电场景的软件关机行为待电池到位后验证 (USB 场景已完成, 记录见 `docs/hw/auras3-pmu-key.md`);验证入口是 `test/pmu` 自检结束后的引导步.
 5. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
 6. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.

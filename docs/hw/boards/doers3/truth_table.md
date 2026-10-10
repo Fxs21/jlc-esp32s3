@@ -207,7 +207,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 
 | BSP 模块 | DoerS3 状态 |
 |---|---|
-| `bsp_board` | 已实现,真机确认 |
+| `bsp_board` | 已实现,真机确认;shell `bsp info` desc: touch/backlight/imu/gnss/sdcard/audio 为 yes,pmu/rtc (无硬件) 与 camera (本 app 未开 `CONFIG_BSP_ENABLE_CAMERA`) 为 no (2026-10-10, sha `d849d5e`) |
 | `bsp_display` | ST7789 已实现,little-endian native contract 真机确认;新式自检 7/7 PASS (2026-10-09, sha `f416fd8`) |
 | `bsp_ui` | LVGL display/indev/背光组合通路;新式自检 6/6 PASS (2026-10-10, sha `98bd54d`) |
 | `bsp_touch` | FT6336 已实现;新式自检 5/5 PASS (2026-10-10, sha `caeaa8a`) |
