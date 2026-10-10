@@ -2,6 +2,7 @@ set(BSP_BOARD_SRCS
     "src/boards/auras3/board.c"
     "src/boards/auras3/display.c"
     "src/boards/auras3/touch.c"
+    "src/boards/auras3/key.c"
     "src/boards/auras3/imu.c"
     "src/boards/auras3/audio.c"
     "src/boards/auras3/gnss.c"

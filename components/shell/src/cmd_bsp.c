@@ -12,6 +12,7 @@
 #include "bsp_camera.h"
 #include "bsp_gnss.h"
 #include "bsp_imu.h"
+#include "bsp_key.h"
 #include "bsp_pmu.h"
 #include "bsp_rtc.h"
 #include "bsp_sdcard.h"
@@ -118,6 +119,7 @@ static int cmd_bsp(int argc, char **argv)
     const bsp_board_info_t *board = bsp_board_get_info();
     const bsp_touch_desc_t *touch = bsp_touch_get_desc();
     const bsp_backlight_desc_t *backlight = bsp_backlight_get_desc();
+    const bsp_key_desc_t *key = bsp_key_get_desc();
     const bsp_imu_desc_t *imu = bsp_imu_get_desc();
     const bsp_gnss_desc_t *gnss = bsp_gnss_get_desc();
     const bsp_sdcard_desc_t *sdcard = bsp_sdcard_get_desc();
@@ -137,6 +139,7 @@ static int cmd_bsp(int argc, char **argv)
     printf("\n");
 
     printf("backlight: present=%s\n", yes_no(backlight != NULL && backlight->present));
+    printf("key: present=%s\n", yes_no(key != NULL && key->present));
     printf("imu: present=%s\n", yes_no(imu != NULL && imu->present));
     printf("gnss: present=%s\n", yes_no(gnss != NULL && gnss->present));
     printf("sdcard: present=%s\n", yes_no(sdcard != NULL && sdcard->present));

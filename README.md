@@ -22,8 +22,8 @@ BSP 是手段,不是目的. 目的有两个:
 
 | 目标板 | 状态 |
 |---|---|
-| DoerS3 | 主验证板. display,touch,backlight,sdcard,imu,camera,gnss 真机通过;audio 已对齐会话模型,但未按新式自检复测 |
-| AuraS3 | 可测模块都走了新式自检;待补: pmu 电池场景 (无电池), audio 喇叭响度 (未接喇叭);无 camera,GNSS 模组未贴装 |
+| DoerS3 | 主验证板. 除 `audio`,`key` 外全部模块走完新式自检闭环;`audio` 已对齐会话模型,未按新式自检复测;`key` 首次真机 4/4 PASS,待干净 sha 复跑和例程删除 |
+| AuraS3 | 可测模块都走了新式自检;待补: pmu 电池场景 (无电池), audio 喇叭响度 (未接喇叭), key 自检;无 camera,GNSS 模组未贴装 |
 
 逐项能力见 `docs/bsp/capabilities.md`;进度见 `docs/bsp/status.md`,真机结论和测量数据见各板 truth table.
 

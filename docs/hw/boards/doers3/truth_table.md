@@ -61,6 +61,19 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 - 覆盖: desc/open-close, 二次 open 拒绝, 参数校验, percent 往返与 clamp, 100% -> 50% -> 10% -> 0% 逐档变暗, 0% -> 100% 恢复.
 - 复测顺带修复重复 open 时误报的 `W ledc: GPIO 42 is not usable` 警告: `ledc_stop()` 不释放 `esp_gpio_reserve` 的 GPIO 保留, 现在只在首次 open 配置 channel, 之后 open/close 只开关输出.
 
+### BOOT / 用户键, GPIO0
+
+| 信号 | 连接 | 备注 |
+|---|---|---|
+| KEY | `IO0_BOOT` (模组 pin 27) | ESP32-S3 `GPIO0`;`SW2` (TS-1010-C-A) 按下拉到 GND |
+| 上拉 | `R2 10 kΩ` 到 `3V3` | 无去抖电容 |
+| 按下极性 | 按下 = 低,松开 = 高 | 原理图注 `BOOT按键 / 用户按键` |
+
+- `GPIO0` 同时是 ROM 下载模式 strap 脚;BSP 只在运行期按输入读取,不驱动,不影响下载模式.
+- BSP 承诺 (瞬时电平,无去抖/事件) 见 `docs/bsp/capabilities.md`.
+
+首次真机自检 (2026-10-10, sha `75f11a2-dirty`, `test/bsp.sh key doers3`): 4/4 PASS, 含引导式按住/松开;干净 sha 复跑和例程 `01-boot_key` 删除待做.
+
 ### Touch, FT6X36/FT6336
 
 | 信号 | 连接 |
@@ -212,6 +225,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_ui` | LVGL display/indev/背光组合通路;新式自检 6/6 PASS (2026-10-10, sha `98bd54d`) |
 | `bsp_touch` | FT6336 已实现;新式自检 5/5 PASS (2026-10-10, sha `caeaa8a`) |
 | `bsp_backlight` | LEDC backlight 已实现;新式自检 6/6 PASS (2026-10-09, sha `0f54ecd`) |
+| `bsp_key` | `GPIO0` BOOT/用户键;首次真机 4/4 PASS (2026-10-10, sha `75f11a2-dirty`),待干净 sha |
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
 | `bsp_imu` | QMI8658 已实现;新式自检 6/6 PASS (2026-10-09, sha `e6ed4b6`) |
 | `bsp_audio` | 会话模型 (record mask,TDM 回采,full-duplex) 已对齐实现;播放真机确认,新式自检未复测 |

@@ -190,6 +190,13 @@ driver 与 board port 的分工:
 - 固定 24 小时制;不做 alarm / timer / CLKOUT / ppm offset / RAM byte: 没有到 SoC 的中断线,CLKOUT 未连接.
 - 不提供与系统时间同步的 helper: 时间基准和时区由 app 层决定.
 
+### Key
+
+- `bsp_key` 只覆盖 GPIO 直连的用户键 (两板都是 BOOT 键, `GPIO0`, 按下为低): `open` / `close` / `is_pressed`.
+- 两板都由 board port 直接实现;按下极性,上拉和 pin 都是 board port 细节.
+- 只承诺瞬时电平: 不去抖,不做中断,不做长短按事件;需要边沿语义的调用方自己采样和判时.
+- 电源键不属于 `bsp_key`: AuraS3 `KEY2` 的事件在 `bsp_pmu` 里.
+
 ## 7. 错误语义
 
 公共 API 统一使用以下错误含义:

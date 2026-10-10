@@ -98,6 +98,17 @@
 - 因此 `SYS_OUT / EXIO4` 不是普通电源输出控制脚,更像一个由 `KEY2/PWRON` 组合生成的电源键/系统状态输入信号;TCA9554 侧应按 input 读取.
 - 真机已确认极性: `KEY2` 松开 / idle 时 `SYS_OUT=0`;按下 `KEY2` 时 `SYS_OUT=1`.这是 board internal/raw debug 结论,不进入稳定 public PMU status.
 
+## 2.2. KEYS
+
+| 按键 | 丝印 | 连接 | 备注 |
+|---|---|---|---|
+| Key1 | BOOT | ESP32-S3 `GPIO0` | `R7 10 kΩ` 上拉到 `VCC3V3`,`C14 100 nF` 到 GND;按下 = 低 |
+| Key2 | PWR | AXP2101 `PWRON` | 经 NMOS 生成 `SYS_OUT / EXIO4`,事件走 `bsp_pmu`;见 §2.1 SYS_OUT / KEY2 关系 |
+| 复位键 | RST | `CHIP_PU` | `R8 10 kΩ` + `C13 100 nF`;硬件复位,软件不可读 |
+
+- `GPIO0` 同时是 ROM 下载模式 strap 脚;BSP 只在运行期按输入读取,不驱动.
+- BOOT 键的 BSP 承诺 (瞬时电平,无去抖/事件) 见 `docs/bsp/capabilities.md`.
+
 ## 3. Display, CO5300 AMOLED QSPI
 
 | 信号 | ESP32-S3 GPIO | 来源/备注 |
@@ -318,6 +329,7 @@ temp      C: 33.71
 | `bsp_display` | 已实现 | CO5300 QSPI native async transfer,真机确认 (2026-09-24, sha `57e98bd`, `test/bsp.sh display auras3`, 7/7 PASS);UI 真机确认 |
 | `bsp_ui` | 已实现 | LVGL display/indev/背光组合通路,真机确认 (2026-09-30, sha `0430fbb`, `test/bsp.sh ui auras3`, 6/6 PASS) |
 | `bsp_backlight` | 已实现 | CO5300 `0x51` brightness percent mapping,真机确认 (2026-09-24, sha `129b1ca`, `test/bsp.sh backlight auras3`, 6/6 PASS) |
+| `bsp_key` | 已实现,待真机自检 | `GPIO0` BOOT 键 (Key1),原理图确认;自检 `test/bsp.sh key auras3` (2026-10-10) |
 | `bsp_touch` | 已实现 | CST9217,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh touch auras3`, 5/5 PASS) |
 | `bsp_sdcard` | 已实现 | SDMMC 1-bit,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh sdcard auras3`, 8/8 PASS) |
 | `bsp_imu` | 已实现 | QMI8658,真机确认 (2026-09-23, sha `99a464c`, `test/bsp.sh imu auras3`, 6/6 PASS) |

@@ -51,6 +51,7 @@
 - QMI8658 gyro 量程换算挂起 (2026-10-09): 驱动 enum 把 `CTRL3` 的 `gFS=100` 记为 `512dps`, 手册 Table 22 为 ±256dps; 若按手册, gyro 读数偏大约 2 倍; 先不改代码, 修复后需双板复测 `imu`.
 - TE wait 默认不启用,后续研究参考 `docs/hw/auras3-display-te.md`.
 - AuraS3 RTC 掉电保持未验证: 板上无备份电池 (`VBACKUP` 接 `VBAT2`),拔电丢时是预期行为,装电池后补测.
+- `key` 复测进行中: DoerS3 首次真机 4/4 PASS (2026-10-10, sha `75f11a2-dirty`), 待干净 sha 复跑;AuraS3 待跑;`01-boot_key` 例程删除依赖双板干净 sha.
 
 ## 下一步
 
@@ -60,3 +61,5 @@
 4. PMU: 仅电池 / USB+电池两种供电场景的软件关机行为待电池到位后验证 (USB 场景已完成, 记录见 `docs/hw/auras3-pmu-key.md`);验证入口是 `test/pmu` 自检结束后的引导步.
 5. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
 6. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.
+7. 例程目录 `docs/code/doers3/` 剩余 `01-boot_key` (已由 `bsp_key` 覆盖, 待 `test/key` 真机通过后核对删除) 和 `04`/`05-audio` (等 DoerS3 audio 复测后核对删除).
+8. 跑 `test/key` 双板真机自检 (`test/bsp.sh key doers3` / `auras3`);通过后按删除闭环补 DoerS3 truth table §5 `01-boot_key` 条目.

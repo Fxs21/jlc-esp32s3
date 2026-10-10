@@ -3,6 +3,7 @@ set(BSP_BOARD_SRCS
     "src/boards/doers3/display.c"
     "src/boards/doers3/touch.c"
     "src/boards/doers3/backlight.c"
+    "src/boards/doers3/key.c"
     "src/boards/doers3/sdcard.c"
     "src/boards/doers3/gnss.c"
     "src/boards/doers3/imu.c"

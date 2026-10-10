@@ -17,6 +17,7 @@
 | UI (LVGL) | `bsp_ui_*` | 已接入 | 已接入 |
 | touch | `bsp_touch_*` | FT6336,`0x38` | CST9217,`0x5A` |
 | backlight | `bsp_backlight_*` | LEDC,`GPIO42` | 面板亮度寄存器 `0x51` |
+| key (BOOT) | `bsp_key_*` | `GPIO0`,按下为低 | `GPIO0` (Key1),按下为低 |
 | sdcard | `bsp_sdcard_*` | 1-bit SDMMC + FAT | 1-bit SDMMC + FAT |
 | imu | `bsp_imu_*` | QMI8658,`0x6A` | QMI8658,`0x6B`,fallback `0x6A` |
 | audio | `bsp_audio_*` | ES8311 `0x18` + ES7210 `0x41` | ES8311 `0x18` + ES7210 `0x40` |
@@ -48,6 +49,12 @@
 - `bsp_ui` 组合 display,touch,backlight,是 app 的 UI 入口.
 - 不做多 backend,不做 vtable 或 registry;允许暴露 LVGL 类型,函数名必须带 `lvgl`.
 - `bsp_ui_open()` 复用 `bsp_display_open()`,两者互斥,不能同时持有.
+
+### Key 只承诺瞬时电平
+
+- `bsp_key` 覆盖 GPIO 直连的用户键;两板当前都是 BOOT 键 (`GPIO0`,按下为低).
+- `bsp_key_is_pressed()` 返回瞬时电平,已归一化为 "按下/未按下";不去抖,不提供事件,长短按和中断;采样节奏由调用方决定.
+- 电源键不属于 `bsp_key`: AuraS3 `KEY2` 的事件在 `bsp_pmu` 里.
 
 ### Audio 是会话模型, 录音通道按 mask 选择
 
@@ -86,6 +93,7 @@
 | `bsp_ui.h` | `bsp_ui_open` / `process` / `set_backlight` / `close`,`bsp_ui_get_lvgl_display`,`bsp_ui_get_lvgl_indev` |
 | `bsp_touch.h` | `bsp_touch_get_desc` / `open` / `close` / `read` |
 | `bsp_backlight.h` | `bsp_backlight_get_desc` / `open` / `close` / `set_percent` / `get_percent` |
+| `bsp_key.h` | `bsp_key_get_desc` / `open` / `close` / `is_pressed` |
 | `bsp_sdcard.h` | `bsp_sdcard_get_desc` / `open` / `close` / `mount` / `unmount` / `get_mount_point` / `get_info` / `get_fs_info` |
 | `bsp_imu.h` | `bsp_imu_get_desc` / `open` / `close` / `read` / `is_data_ready` |
 | `bsp_audio.h` | `bsp_audio_get_desc` / `default_config` / `open` / `close`,`play_start` / `play_stop` / `play_set_volume` / `play_set_mute` / `play_write`,`record_start` / `record_stop` / `record_set_gain` / `record_read` |
