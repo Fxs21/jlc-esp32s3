@@ -200,7 +200,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 |---|---|
 | `bsp_board` | 已实现,真机确认 |
 | `bsp_display` | ST7789 已实现,little-endian native contract 真机确认;新式自检 7/7 PASS (2026-10-09, sha `f416fd8`) |
-| `bsp_ui` | 已实现,真机确认 |
+| `bsp_ui` | LVGL display/indev/背光组合通路;新式自检 6/6 PASS (2026-10-10, sha `98bd54d`) |
 | `bsp_touch` | FT6336 已实现;新式自检 5/5 PASS (2026-10-10, sha `caeaa8a`) |
 | `bsp_backlight` | LEDC backlight 已实现;新式自检 6/6 PASS (2026-10-09, sha `0f54ecd`) |
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
@@ -211,7 +211,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 
 ## 5. 例程对照结论
 
-对照 `docs/code/doers3/` 例程源码,逐项核对初始化序列,地址和取值;一致项已由 driver 覆盖,差异项按下表记录"例程行为 / 本仓库取舍 / 理由".核对基线: 2026-10-09, sha `e6ed4b6`.已核对完毕的例程从 `docs/code/` 删除.
+对照 `docs/code/doers3/` 例程源码,逐项核对初始化序列,地址和取值;一致项已由 driver 覆盖,差异项按下表记录"例程行为 / 本仓库取舍 / 理由".各条目附对应的真机复测 sha;已核对完毕的例程从 `docs/code/` 删除.
 
 ### 02-attitude -> `bsp_imu`
 
@@ -249,11 +249,27 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 
 ### 08-lcd_lvgl -> `bsp_touch`, `bsp_ui`
 
-例程同时覆盖触摸和 LVGL UI,分两次记录: touch 部分随本轮复测入档, ui 部分待 `bsp_ui` 复测后补记;例程目录在两块都核对完才删除.
+#### touch 部分
 
-touch 部分一致项: I2C 地址 `0x38`,走主 I2C (`IO1` / `IO2`);RESET 无 GPIO 控制, EINT 未接, 双方都是纯轮询.
+一致项: I2C 地址 `0x38`,走主 I2C (`IO1` / `IO2`);RESET 无 GPIO 控制, EINT 未接, 双方都是纯轮询.
 
 | 例程行为 | 本仓库取舍 | 理由 |
 |---|---|---|
 | `esp_lcd_touch_ft5x06` 组件 + `lvgl_port` 直接注册 LVGL indev | private `ft6336` driver, 公共 API 返回 BSP 自有 point 结构, LVGL 绑定在 `bsp_ui` | 小 IC driver 私有化;公共 API 不暴露第三方 touch 类型 |
 | `x_max = 240`, `y_max = 320`, `swap_xy = 1`, `mirror_x = 1`, `mirror_y = 0` | `x_max = 319`, `y_max = 239`, `swap_xy = 1`, `mirror_x = 0`, `mirror_y = 1` | 两个 driver 坐标约定不同, 配置值不可互搬;本仓库配置经真机五点检查验证 |
+
+#### ui 部分
+
+一致项: 画面来源都用 LVGL 自带 demo;面板 `320x240` RGB565.
+
+新式自检复测 (2026-10-10, sha `98bd54d`, `test/bsp.sh ui doers3`): 6/6 PASS, 1 个人工项 `yes` (widgets demo 渲染完整, 触摸跟手).
+
+- 覆盖: display/indev/背光绑定, handle 独占, 参数校验, `process()` 延时提示, 刷帧计数, widgets demo 交互.
+- 双缓冲 2 x 30 行 (`高/8`), 38400 B, 落在 SRAM DMA.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| LVGL `~8.3` + `esp_lvgl_port` (~1.4): 自带 task/tick, app 注册 disp/indev | LVGL `9.5` + 私有 `bsp_lvgl_port` / `bsp_ui`: tick 用 `esp_timer`, app 只调 `bsp_ui_open()` 和 `bsp_ui_process()` | BSP 不引入外部 LVGL port, 也不做 app 生命周期;主循环归 app |
+| 单缓冲 320 x 20 行 (PSRAM), `double_buffer = false` | 双缓冲 2 x 30 行, SRAM DMA 优先, PSRAM 回退 | 渲染与传输重叠;行数取 `高/8` 且能放进内部 SRAM |
+| `lvgl_port` rotation 再配一遍 `swap_xy` / `mirror_x` / `mirror_y` (要求与面板初始化一致) | 变换只在 `esp_lcd` 面板层做一次, LVGL display 直接建为 `320x240` | 单一事实来源, 避免两处变换配错 |
+| `app_main` 直接跑 `lv_demo_benchmark()` | `bsp_ui` 不内置 demo;demo 只在 `test/ui` 里出现 | BSP 只提供集成, 不承载具体界面 |
