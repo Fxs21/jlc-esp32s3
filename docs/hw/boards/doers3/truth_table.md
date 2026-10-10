@@ -37,6 +37,7 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 | MOSI | `IO40_LCD_MOSI` | SPI data |
 | SCK | `IO41_LCD_SCK` | SPI clock |
 | CS | `LCD_CS` | 来自 PCA9557 IO0 |
+| RST | 系统复位网络 `RESET` | 与模块 EN 共用,无独立 GPIO |
 | Backlight | `IO42_LCD_BL` | LEDC backlight |
 
 当前 BSP 约定:
@@ -66,10 +67,17 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 |---|---|
 | I2C SDA | `IO1_I2C_SDA` |
 | I2C SCL | `IO2_I2C_SCL` |
-| RESET | `RESET` |
+| RESET | 系统复位网络 `RESET` (与模块 EN, LCD RST 共用) |
+| EINT | 未接 |
 | I2C 地址 | `0x38` |
 
 当前 BSP 使用 private `ft6336` driver,public API 返回 BSP 自有 touch point 结构.
+
+新式自检复测 (2026-10-10, sha `caeaa8a`, `test/bsp.sh touch doers3`): 5/5 PASS.
+
+- 覆盖: desc/open-close, 二次 open 拒绝, 参数校验, 空闲无点, 引导式五点检查.
+- 坐标域 `319x239` (最大索引 = 宽/高 - 1), `max_points = 1`.
+- `pressure` 为 FT6336 weight 寄存器原始值,本板读数均为 0,调用方不应依赖.
 
 ### IMU, QMI8658
 
@@ -193,7 +201,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_board` | 已实现,真机确认 |
 | `bsp_display` | ST7789 已实现,little-endian native contract 真机确认;新式自检 7/7 PASS (2026-10-09, sha `f416fd8`) |
 | `bsp_ui` | 已实现,真机确认 |
-| `bsp_touch` | FT6336 已实现,真机确认 |
+| `bsp_touch` | FT6336 已实现;新式自检 5/5 PASS (2026-10-10, sha `caeaa8a`) |
 | `bsp_backlight` | LEDC backlight 已实现;新式自检 6/6 PASS (2026-10-09, sha `0f54ecd`) |
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
 | `bsp_imu` | QMI8658 已实现;新式自检 6/6 PASS (2026-10-09, sha `e6ed4b6`) |
@@ -230,7 +238,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 
 ### 06-lcd -> `bsp_display`
 
-一致项: MOSI `IO40` / SCLK `IO41` / DC `IO39` / RST 未接, 背光 `IO42`;PCA9557 `LCD_CS` (IO0);SPI mode 2, cmd/param 8 bit, 16 bpp, `320x240`, `pclk 80 MHz`, `trans_queue_depth 10`;`invert_color(true)` + `swap_xy(true)` + `mirror(true, false)`;LEDC 5 kHz, `output_invert=true`.
+一致项: MOSI `IO40` / SCLK `IO41` / DC `IO39` / RST 接系统复位网络 `RESET` (无独立 GPIO), 背光 `IO42`;PCA9557 `LCD_CS` (IO0);SPI mode 2, cmd/param 8 bit, 16 bpp, `320x240`, `pclk 80 MHz`, `trans_queue_depth 10`;`invert_color(true)` + `swap_xy(true)` + `mirror(true, false)`;LEDC 5 kHz, `output_invert=true`.
 
 | 例程行为 | 本仓库取舍 | 理由 |
 |---|---|---|
@@ -238,3 +246,14 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | 未设置 `data_endian`, 面板 `RAMCTL` 保持默认 big-endian | `data_endian = LCD_RGB_DATA_ENDIAN_LITTLE` (面板 `RAMCTL` 置 little-endian 位) | 调用方直接传 LVGL / host-order RGB565, flush 路径不逐像素换序 |
 | LEDC `LEDC_TIMER_1`, 10-bit duty (100% = 1023) | `LEDC_TIMER_0`, 13-bit duty (100% = 8191) | timer0 与 camera XCLK 的 `LEDC_TIMER_1` 分开, backlight 与 camera 在同一镜像共存;13-bit 是 5 kHz 下可取的最高分辨率 |
 | 背光 percent -> 1023 取整 | percent -> 8191 取整, 百分比语义不变 | 档位更细, API 语义一致 |
+
+### 08-lcd_lvgl -> `bsp_touch`, `bsp_ui`
+
+例程同时覆盖触摸和 LVGL UI,分两次记录: touch 部分随本轮复测入档, ui 部分待 `bsp_ui` 复测后补记;例程目录在两块都核对完才删除.
+
+touch 部分一致项: I2C 地址 `0x38`,走主 I2C (`IO1` / `IO2`);RESET 无 GPIO 控制, EINT 未接, 双方都是纯轮询.
+
+| 例程行为 | 本仓库取舍 | 理由 |
+|---|---|---|
+| `esp_lcd_touch_ft5x06` 组件 + `lvgl_port` 直接注册 LVGL indev | private `ft6336` driver, 公共 API 返回 BSP 自有 point 结构, LVGL 绑定在 `bsp_ui` | 小 IC driver 私有化;公共 API 不暴露第三方 touch 类型 |
+| `x_max = 240`, `y_max = 320`, `swap_xy = 1`, `mirror_x = 1`, `mirror_y = 0` | `x_max = 319`, `y_max = 239`, `swap_xy = 1`, `mirror_x = 0`, `mirror_y = 1` | 两个 driver 坐标约定不同, 配置值不可互搬;本仓库配置经真机五点检查验证 |
