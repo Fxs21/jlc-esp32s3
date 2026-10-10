@@ -51,6 +51,15 @@ PCA9557 是 DoerS3 board-private helper,不进入 public BSP API.
 - 覆盖: desc/open-close, 二次 open 拒绝, 参数校验, done 回调计数, 分块写, 全屏五色顺序, 居中图案对称, 左边缘标记.
 - 复测期间发现 `fill_rect` 在异步传输未完成时释放并复用 strip, frame 图案底部残留白条;修复为等 done 回调到齐再释放, 同 sha 复测干净通过.
 
+### Backlight, LEDC PWM
+
+背光 `IO42_LCD_BL`,LEDC 5 kHz / 13-bit duty / `output_invert=true`;与 `06-lcd` 例程的配置差异见 §5.
+
+新式自检复测 (2026-10-09, sha `0f54ecd`, `test/bsp.sh backlight doers3`): 6/6 PASS, 2 个人工项 `yes`.
+
+- 覆盖: desc/open-close, 二次 open 拒绝, 参数校验, percent 往返与 clamp, 100% -> 50% -> 10% -> 0% 逐档变暗, 0% -> 100% 恢复.
+- 复测顺带修复重复 open 时误报的 `W ledc: GPIO 42 is not usable` 警告: `ledc_stop()` 不释放 `esp_gpio_reserve` 的 GPIO 保留, 现在只在首次 open 配置 channel, 之后 open/close 只开关输出.
+
 ### Touch, FT6X36/FT6336
 
 | 信号 | 连接 |
@@ -185,7 +194,7 @@ DoerS3 真机已确认可收到有效 NMEA,RMC/GGA parser 正常.模块资料: `
 | `bsp_display` | ST7789 已实现,little-endian native contract 真机确认;新式自检 7/7 PASS (2026-10-09, sha `f416fd8`) |
 | `bsp_ui` | 已实现,真机确认 |
 | `bsp_touch` | FT6336 已实现,真机确认 |
-| `bsp_backlight` | LEDC backlight 已实现 |
+| `bsp_backlight` | LEDC backlight 已实现;新式自检 6/6 PASS (2026-10-09, sha `0f54ecd`) |
 | `bsp_sdcard` | 1-bit SDMMC mount 已实现,真机确认 |
 | `bsp_imu` | QMI8658 已实现;新式自检 6/6 PASS (2026-10-09, sha `e6ed4b6`) |
 | `bsp_audio` | 会话模型 (record mask,TDM 回采,full-duplex) 已对齐实现;播放真机确认,新式自检未复测 |

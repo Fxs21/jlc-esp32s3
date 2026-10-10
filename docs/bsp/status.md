@@ -29,7 +29,8 @@
 - DoerS3 `imu` 走完新式自检闭环, AuraS3 `imu` 同 sha 复测 (2026-10-09, sha `e6ed4b6`): 双板各 6/6 PASS; 期间把 `CTRL1` 改为显式小端 (`0x60` -> `0x40`), 等待不进 driver, `open()` 契约明确为 "配置 + 独占 + 单位", 首样本由调用方用 `bsp_imu_is_data_ready()` 把关; 真机实证 `BE` 位不生效, 手册 Table 22 矛盾处按实测; 例程 `02-attitude` 已核对删除, 结论见 `docs/hw/boards/doers3/truth_table.md` §5.
 - DoerS3 `sdcard` 复测 (2026-10-09, sha `5fecc25`): 8/8 PASS, 干净 sha; 卡 `SDABC` SDHC 30003.5 MB, 1-bit @ 20 MHz; 例程 `03-micro_sd` 已核对删除, 结论见 `docs/hw/boards/doers3/truth_table.md` §5.
 - DoerS3 `display` 复测 (2026-10-09, sha `f416fd8`): 7/7 PASS, 3 个人工项 `yes`, 干净 sha;复测期间修复 `fill_rect` 异步缓冲复用竞争 (frame 图案底部残留白条);例程 `06-lcd` 已核对删除, 结论见 `docs/hw/boards/doers3/truth_table.md` §5.
-- 旧口径真机能力 (未按新式自检复测): DoerS3 touch,backlight,audio,camera,gnss;两板 shell 调试入口和 UI 正常.
+- DoerS3 `backlight` 复测 (2026-10-09, sha `0f54ecd`): 6/6 PASS, 2 个人工项 `yes`, 干净 sha;顺带修复重复 open 时误报的 `W ledc: GPIO 42 is not usable` 警告;配置对照并入 §5 `06-lcd` 条目.
+- 旧口径真机能力 (未按新式自检复测): DoerS3 touch,audio,camera,gnss;两板 shell 调试入口和 UI 正常.
 - camera viewfinder (capture -> byte-swap -> display) 连续通路真机通过.
 - 测量数据,日志和逐项细节见各板 truth table.
 
@@ -49,7 +50,7 @@
 
 1. 阶段4 (AuraS3 铺开): `pmu` 自检与 USB 场景软件关机,`i2c` 总线自检已完成;剩余 `gnss` 待模组贴装,当前自检输出 `SKIP`.
 2. 阶段5 (AuraS3 收尾): 每完成一个模块就走一次删除闭环;AuraS3 例程 `01`~`07` 已全部核对删除.
-3. 阶段6 (DoerS3): 进行中, 用同一套自检 app 复测全部模块; `i2c`,`imu`,`sdcard`,`display` 已完成, 其余模块待测 (audio 暂跳过).
+3. 阶段6 (DoerS3): 进行中, 用同一套自检 app 复测全部模块; `i2c`,`imu`,`sdcard`,`display`,`backlight` 已完成, 其余模块待测 (audio 暂跳过).
 4. PMU: 仅电池 / USB+电池两种供电场景的软件关机行为待电池到位后验证 (USB 场景已完成, 记录见 `docs/hw/auras3-pmu-key.md`);验证入口是 `test/pmu` 自检结束后的引导步.
 5. 确认 AXP2101 rail 到 `VCC3V3` / `VCCRTC` / 外设电源的映射;验证前不开放 DCDC/LDO control.
 6. AuraS3 GNSS 待硬件: 贴装模组后才能验证 `38400` baud,TX/RX 方向和 `GPS_RST` reset 极性.
