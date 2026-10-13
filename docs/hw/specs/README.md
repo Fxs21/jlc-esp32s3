@@ -60,7 +60,6 @@
 | Waveshare 官方示例包 (`ESP-IDF-v5.4` 例程) | AuraS3 各外设的板厂参考实现 | `01`~`07` 已提取到 `docs/code/auras3/ESP-IDF-v5.4/`;原始 zip 已删除 |
 | Arduino v3.3.5 `pin_config.h` (AuraS3) | AuraS3 引脚交叉对照 | 来源见 `../boards/auras3/README.md` |
 | 立创实战派 ESP32-S3 官方例程包 | DoerS3 各外设的板厂参考实现 | `01`~`08` 已提取到 `docs/code/doers3/`;原始 zip 已删除 |
-| ESP32-S3 Hardware Design Guidelines | 硬件设计参考 | 未入库,URL 待补 |
 | X-TRACK | LVGL 骑行码表参考工程;x-track 移植实验的上游 | 未入库;`https://github.com/FASTSHIFT/X-TRACK.git`,参考 commit `c42b8e5` |
 | EasyGPS | GPS 终端参考工程结构 | 未入库;`https://github.com/ZhangKeLiang0627/EasyGPS.git`,参考 commit `337eaeb` |
 | LVGL 圆屏旋钮示例 | 圆形屏幕的 LVGL 布局参考 | 未入库;`https://github.com/lvgl/lv_port_viewe_knob_15_espidf` |
