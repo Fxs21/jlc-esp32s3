@@ -1,0 +1,8 @@
+version: "0.1.0"
+description: "X-TRACK cycling computer App layer (platform-neutral). Consumed by the jlc-esp32s3 BSP board project; the platform must provide the hal_clock/hal_gps/hal_power implementations."
+url: "https://github.com/Fxs21/xtrack-app"
+repository: "https://github.com/Fxs21/xtrack-app.git"
+license: "MIT"
+
+dependencies:
+  idf: ">=5.0"

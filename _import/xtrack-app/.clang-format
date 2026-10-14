@@ -1,0 +1,45 @@
+# 以 LLVM 风格为基础
+BasedOnStyle: LLVM
+
+# 缩进宽度 4 个空格
+IndentWidth: 4
+
+# 不使用 Tab, 只用空格
+UseTab: Never
+
+# 花括号: 函数另起一行, 控制语句不另起一行
+BreakBeforeBraces: Linux
+
+# 行宽限制 80 列
+ColumnLimit: 80
+
+# 短函数不合并到一行
+AllowShortFunctionsOnASingleLine: None
+
+# 短枚举展开到多行
+AllowShortEnumsOnASingleLine: false
+
+# 短 if 不合并到一行
+AllowShortIfStatementsOnASingleLine: false
+
+# 连续赋值对齐等号
+AlignConsecutiveAssignments: true
+
+# 连续宏定义对齐值
+AlignConsecutiveMacros: true
+
+# 对齐尾部 Doxygen 注释 (/**< */)
+AlignTrailingComments: true
+
+# 宏续行 \ 左对齐(最长代码行定列, 不推到右边界)
+AlignEscapedNewlines: Left
+PointerAlignment: Right
+
+# 控制语句(if/for/while)的 '(' 前加空格
+SpaceBeforeParens: ControlStatements
+
+# 空括号内不加空格
+SpaceInEmptyParentheses: false
+
+# 不自动排序 #include
+SortIncludes: false
