@@ -138,6 +138,97 @@ print("dependency check passed")
 PY
 
 echo
+echo "== xtrack app boundary check =="
+
+python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+# xtrack/ 是平台无关的应用层: 不允许出现 SDL, ESP-IDF 或 BSP 头文件;
+# 平台差异只允许存在于 sim/ (PC 后端) 和 main/ (板侧后端).
+
+forbidden = [
+    (re.compile(r'#\s*include\s*[<"]SDL'), "SDL"),
+    (re.compile(r'#\s*include\s*[<"]esp_'), "ESP-IDF (esp_*)"),
+    (re.compile(r'#\s*include\s*[<"]driver/'), "ESP-IDF driver/*"),
+    (re.compile(r'#\s*include\s*[<"]freertos/'), "FreeRTOS"),
+    (re.compile(r'#\s*include\s*[<"]soc/'), "ESP-IDF soc/*"),
+    (re.compile(r'#\s*include\s*[<"]bsp_'), "BSP (bsp_*)"),
+    (re.compile(r'#\s*include\s*[<"]hal_sdl'), "sim-only hal_sdl"),
+]
+
+text_suffixes = {".c", ".h", ".inc"}
+skip_dirs = {"third_party", "build"}
+
+failed = False
+for path in sorted(Path("xtrack").rglob("*")):
+    if not path.is_file() or path.suffix not in text_suffixes:
+        continue
+    if any(part in skip_dirs for part in path.parts):
+        continue
+    text = path.read_text(errors="ignore")
+    for regex, name in forbidden:
+        for match in regex.finditer(text):
+            print(f"xtrack boundary violation: {path}: {name}: {match.group(0).strip()}")
+            failed = True
+
+if failed:
+    sys.exit(1)
+
+print("xtrack app boundary check passed")
+PY
+
+echo
+echo "== retired name check =="
+
+python3 - <<'PY'
+from pathlib import Path
+import sys
+
+# 已被替换的旧名字, 不允许再出现在仓库文本里 (check.sh 自身的列表除外).
+retired = ["xtrack_app", "xtrack_hal_board"]
+
+text_suffixes = {
+    ".c",
+    ".h",
+    ".inc",
+    ".md",
+    ".txt",
+    ".sh",
+    ".yml",
+    ".yaml",
+    ".cmake",
+    ".json",
+}
+skip_dirs = {".git", ".cache", "build", "managed_components", "third_party", "tmp"}
+skip_prefixes = ("docs/code",)
+
+failed = False
+for path in sorted(Path(".").rglob("*")):
+    if not path.is_file():
+        continue
+    if any(part in skip_dirs for part in path.parts):
+        continue
+    if str(path).startswith(skip_prefixes):
+        continue
+    if path.name == "check.sh":
+        continue
+    if path.suffix not in text_suffixes and path.name != "CMakeLists.txt":
+        continue
+    text = path.read_text(errors="ignore")
+    for name in retired:
+        if name in text:
+            print(f"retired name: {path}: {name}")
+            failed = True
+
+if failed:
+    sys.exit(1)
+
+print("retired name check passed")
+PY
+
+echo
 echo "== public header include boundary check =="
 
 python3 - <<'PY'
@@ -185,6 +276,13 @@ if [ "${CHECK_BUILD:-0}" = "1" ]; then
         source "$HOME/esp/esp-idf/export.sh"
     fi
     idf.py build
+fi
+
+if [ "${CHECK_SIM:-0}" = "1" ]; then
+    echo
+    echo "== sim build =="
+    cmake -S sim -B sim/build -G Ninja
+    cmake --build sim/build
 fi
 
 echo

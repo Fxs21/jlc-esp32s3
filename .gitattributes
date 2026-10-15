@@ -4,3 +4,5 @@
 *.pcm binary
 docs/code/doers3/0*/** linguist-vendored
 docs/code/auras3/ESP-IDF-v5.4/** linguist-vendored
+# IDF Component Manager 生成的 lock 文件, YAML 折行自带行尾空格.
+dependencies.lock whitespace=-trailing-space

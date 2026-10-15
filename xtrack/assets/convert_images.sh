@@ -1,10 +1,12 @@
 #!/bin/bash
-# Convert PNG icons from assets/ to C files in resource/image/
-# Uses LVGL v9's LVGLImage.py script.
+# Convert PNG icons from this directory to C files in ../resource/image/
+# Uses LVGL v9's LVGLImage.py script (from the sim-side submodule).
 
-LVGL_CONV="lvgl/scripts/LVGLImage.py"
-ASSETS_DIR="assets"
-OUTPUT_DIR="resource/image"
+cd "$(dirname "$0")" || exit 1
+
+LVGL_CONV="../../sim/third_party/lvgl/scripts/LVGLImage.py"
+ASSETS_DIR="."
+OUTPUT_DIR="../resource/image"
 CF="ARGB8888"
 
 # Mapping: Chinese filename -> English resource name

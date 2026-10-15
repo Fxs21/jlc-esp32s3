@@ -1,0 +1,4 @@
+[submodule "sim/third_party/lvgl"]
+	path = sim/third_party/lvgl
+	url = https://github.com/lvgl/lvgl.git
+	shallow = true

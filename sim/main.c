@@ -7,7 +7,7 @@
  * circular bezel mask (black outside the visible circle), and can export a
  * frame to PPM for layout review:
  *
- *   PROTO_SHOT=/tmp/shot.ppm PROTO_SHOT_DELAY=6000 ./build/lvgl-sim
+ *   PROTO_SHOT=/tmp/shot.ppm PROTO_SHOT_DELAY=6000 ./sim/build/lvgl-sim
  *
  * Both the bezel mask and the screenshot channel are throwaway scaffolding for
  * sorting out the round-screen layout; delete round_bezel_create() and

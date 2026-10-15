@@ -4,7 +4,7 @@
 
 ## 1. 项目目标
 
-仓库目的,分层和正式承载应用的状态见根 `README.md` §1;进度,未验证项和暂停项以 `docs/bsp/status.md` 为准.
+仓库目的,分层和正式承载应用的状态见根 `README.md` §1;BSP 进度,未验证项和暂停项以 `docs/bsp/status.md` 为准,App 进度以 `docs/app/status.md` 为准.
 
 ## 2. 工作方式
 
@@ -15,7 +15,7 @@
 - 遇到不明确,存在明显取舍或可能影响后续架构的问题时,应主动询问用户,而不是自行拍板;如果已有更合适的最佳实践,应说明原因并给出建议,由用户决定是否采用.
 - 不要回避已暴露的问题,也不要只给绕行建议;应正面定位根因,给出可执行修复路径,并在必要时修改实现.
 
-## 3. API 约束
+## 3. API 与边界约束
 
 - 核心 BSP API 只暴露 `esp_err_t`,基础 C 类型,BSP 自有 `struct` / `enum`.
 - 核心 BSP API 不直接暴露 ESP-IDF,LVGL 或第三方 driver 类型.
@@ -27,6 +27,9 @@
 - 不把 BSP 做成应用框架: 不提供 app 生命周期,事件循环或 task 管理.
 - 不承诺暴露每个芯片的完整能力.
 - 未经确认的硬件事实,slot layout,bus 时序或实验能力,不进入稳定公共 API.
+- App 层 `xtrack/` 平台无关: 只依赖 LVGL, C 标准库和 `xtrack/hal/` 的接口,不许 include SDL, ESP-IDF (`esp_*`,`driver/`,`freertos/`,`soc/`) 或 BSP (`bsp_*`) 头文件;平台差异只允许在 `sim/` (PC) 和 `main/` (板侧) 消化. 该边界由 `tools/check.sh` 强制.
+- App 层源清单唯一出处是 `xtrack/app_sources.cmake`;`xtrack/CMakeLists.txt` (IDF 组件) 和 `sim/CMakeLists.txt` 都 include 它,不允许再维护第二份清单.
+- 板侧 HAL 实现只调 BSP public API,不许 include board port 或私有 driver 头文件.
 
 ## 4. Driver 与 Board Port 约束
 
@@ -57,10 +60,14 @@
 - 项目构建命令优先使用 `idf.py build`;test_app 的构建目录统一为 `build/`,不要自造其他目录名.
 - 修改代码或文档后, 如果改动涉及 BSP, API, 文档或依赖, 应运行 `tools/check.sh`.
 - 如果用户明确要求构建验证, 或明确允许 build, 再运行 `CHECK_BUILD=1 tools/check.sh`.
+- 修改 `xtrack/` 或 `sim/` 后, 除 `tools/check.sh` 外应跑 `CHECK_SIM=1 tools/check.sh` 验证 PC 模拟器构建;改动 App 源码或 BSP 时还要确认 root 工程 `idf.py build` 通过.
 - 若 `tools/check.sh` 失败, 应先修复失败项, 不要跳过.
 
 ## 7. 当前阶段注意事项
 
+- xtrack 是正式承载 app;板侧接入 (`main/` 里用 BSP 打开 UI/LVGL,调 `hal_init()` 和 `app_init()`,再进 `bsp_ui_process()` 循环) 是当前里程碑,在此之前 App 只在 PC 模拟器上验证.
+- App 的 HAL 缝已知断裂: `hal_gps_get_info()` 没有调用者,`dp_gps.c` 自己造模拟轨迹;板侧接入前先定案 (候选: HAL 只搬 NMEA 字节, 解析放 App 层).
+- 屏幕布局按 466x466 圆屏设计,圆屏安全区和 DoerS3 320x240 的适配未完成,见 `docs/app/status.md`.
 - 当前优先保证 DoerS3 路径稳定可用;AuraS3 可以先保留 stub.
 - DoerS3 硬件事实以 `docs/hw/boards/doers3/truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改.
 - AuraS3 硬件事实以 `docs/hw/boards/auras3/truth_table.md` 为准;若实现与真值表冲突,应先记录差异再修改. truth table 中标注待确认的项,当前允许对应 board port 返回 `ESP_ERR_NOT_SUPPORTED` 或保留 stub.

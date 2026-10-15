@@ -19,6 +19,9 @@
 | `hw/specs/README.md` | 器件资料索引 (datasheet,原理图,未入库参考) |
 | `hw/auras3-display-te.md` | AuraS3 TE 防撕裂实验记录 |
 | `hw/auras3-pmu-key.md` | AuraS3 PMU / KEY2 阶段性结论 |
+| `app/design.md` | xtrack App 层: 分层, 平台边界, 构建和依赖的两个来源 |
+| `app/status.md` | App 进度: 已完成, 已知限制和下一步 |
+| `app/coding-conventions.md` | xtrack 代码风格约定 |
 | `../components/shell/README.md` | 调试 shell 使用说明 |
 
 ## 文档分工
@@ -31,13 +34,17 @@
 - `bsp/design.md`: BSP 结构,分层职责和 API 语义.
 - `bsp/porting-guide.md`: board port 接入指南和每个文件的实现模板.
 - `bsp/audio.md`: 音频的硬件连接, 通道模型和用法; 能力承诺以 `bsp/capabilities.md` 为准.
+- `app/design.md` 和 `app/status.md`: App 层的结构与边界, 进度和已知限制;板级硬件事实仍以 truth table 为准.
 - 实验记录 (`hw/auras3-*.md`): 过程,取舍和理由;结论只写一次,不重复上面的承诺表.
 - `code/<board>/`: 板厂例程参考,第三方代码,不适用本仓库的 API 约束和文档风格规则.
-- `../AGENTS.md`: 协作规则;架构禁项和 API 约束以 §3, §4 为准.
+- `../AGENTS.md`: 协作规则;架构禁项, API 约束和 App 层边界以 §3, §4 为准.
 
 ## 代码入口
 
 ```text
+xtrack/                          # 承载应用 App 层,平台无关
+sim/                             # PC 模拟器后端
+main/                            # 板侧应用入口和板侧 HAL
 components/bsp/include/          # app 可见 BSP API
 components/bsp/src/common/       # 跨板复用组合逻辑
 components/bsp/src/boards/       # board port
