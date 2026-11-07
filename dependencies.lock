@@ -34,10 +34,19 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 9.5.0
+  xtrack_app:
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    source:
+      path: /home/fxs/learn/lvgl-simulator/components/xtrack_app
+      type: local
+    version: 0.1.0
 direct_dependencies:
 - espressif/esp_lcd_co5300
 - idf
 - lvgl/lvgl
-manifest_hash: b358d35c134ccc611b828a21cd9c784d82062393c49d167aa079a015599a2575
+- xtrack_app
+manifest_hash: b40033301200b1e90b2f6ff6b0bb51650a4cdf0402c9e8fb7148bea31bb6dbe0
 target: esp32s3
 version: 2.0.0

@@ -1,3 +1,12 @@
 dependencies:
   idf:
     version: '>=4.1.0'
+  # X-TRACK App layer (platform-neutral). Development uses the local working
+  # copy so App edits take effect immediately; for a locked/reproducible build
+  # switch this entry to a git dependency:
+  #   xtrack_app:
+  #     git: "https://github.com/Fxs21/xtrack-app.git"
+  #     path: "components/xtrack_app"
+  #     version: "<commit-or-tag>"
+  xtrack_app:
+    path: "../../../learn/lvgl-simulator/components/xtrack_app"
